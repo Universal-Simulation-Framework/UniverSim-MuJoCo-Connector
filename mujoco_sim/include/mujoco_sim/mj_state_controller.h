@@ -25,17 +25,17 @@
 #include <set>
 #include <thread>
 
-class MjStateManager
+class MjStateController
 {
 public:
-    MjStateManager(const MjStateManager &) = delete;
+    MjStateController(const MjStateController &) = delete;
 
-    void operator=(MjStateManager const &) = delete;
+    void operator=(MjStateController const &) = delete;
 
-    static MjStateManager &get_instance()
+    static MjStateController &get_instance()
     {
-        static MjStateManager mj_state_manager;
-        return mj_state_manager;
+        static MjStateController mj_state_controller;
+        return mj_state_controller;
     }
 
 public:
@@ -89,7 +89,7 @@ private:
     void send_meta_data();
 
 private:
-    MjStateManager() = default;
+    MjStateController() = default;
 
-    ~MjStateManager();
+    ~MjStateController();
 };

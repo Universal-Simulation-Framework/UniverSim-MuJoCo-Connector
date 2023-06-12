@@ -89,7 +89,7 @@ add_library(${MUJOCO_SIM_HEADLESS_NODE}_lib
   ${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_ros.cpp
   ${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_model.cpp
   ${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_sim.cpp
-  ${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_state_manager.cpp
+  ${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_state_controller.cpp
 )
 add_dependencies(${MUJOCO_SIM_HEADLESS_NODE}_lib ${MUJOCO})
 target_link_libraries(${MUJOCO_SIM_HEADLESS_NODE}

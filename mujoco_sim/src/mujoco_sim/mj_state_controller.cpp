@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mj_state_manager.h"
+#include "mj_state_controller.h"
 
 #include <chrono>
 #include <csignal>
@@ -29,17 +29,17 @@
 
 std::string host = "tcp://127.0.0.1";
 
-std::map<std::string, std::vector<std::string>> MjStateManager::send_objects;
+std::map<std::string, std::vector<std::string>> MjStateController::send_objects;
 
-std::map<std::string, std::vector<std::string>> MjStateManager::receive_objects;
+std::map<std::string, std::vector<std::string>> MjStateController::receive_objects;
 
 bool should_shut_down = false;
 
-MjStateManager::~MjStateManager()
+MjStateController::~MjStateController()
 {
 }
 
-void MjStateManager::init(const int port)
+void MjStateController::init(const int port)
 {
 	XmlRpc::XmlRpcValue receive_object_params;
 	if (ros::param::get("~receive", receive_object_params))
@@ -90,7 +90,7 @@ void MjStateManager::init(const int port)
 	}
 }
 
-void MjStateManager::send_meta_data()
+void MjStateController::send_meta_data()
 {
 	zmq_disconnect(socket_client, socket_addr.c_str());
 	zmq_connect(socket_client, socket_addr.c_str());
@@ -104,6 +104,9 @@ void MjStateManager::send_meta_data()
 		Json::Value meta_data_json;
 		meta_data_json["time"] = "microseconds";
 		meta_data_json["simulator"] = "mujoco";
+		meta_data_json["length_unit"] = "m";
+		meta_data_json["angle_unit"] = "rad";
+		meta_data_json["handedness"] = "rhs";
 
 		mtx.lock();
 		for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
@@ -125,20 +128,30 @@ void MjStateManager::send_meta_data()
 					send_data_vec.push_back(&d->xquat[4 * body_id + 2]);
 					send_data_vec.push_back(&d->xquat[4 * body_id + 3]);
 				}
-				else if (strcmp(attribute.c_str(), "joint_position") == 0)
+				else if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue") == 0)
 				{
 					const int qpos_id = m->jnt_qposadr[joint_id];
 					send_data_vec.push_back(&d->qpos[qpos_id]);
+				}
+				else if (strcmp(attribute.c_str(), "joint_position") == 0)
+				{
+					ROS_WARN("%s for %s not implemented yet", attribute.c_str(), send_object.first.c_str());
 				}
 				else if (strcmp(attribute.c_str(), "joint_quaternion") == 0)
 				{
-					const int qpos_id = m->jnt_qposadr[joint_id];
-					send_data_vec.push_back(&d->qpos[qpos_id]);
-					send_data_vec.push_back(&d->qpos[qpos_id + 1]);
-					send_data_vec.push_back(&d->qpos[qpos_id + 2]);
-					send_data_vec.push_back(&d->qpos[qpos_id + 3]);
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						send_data_vec.push_back(&d->qpos[qpos_id]);
+						send_data_vec.push_back(&d->qpos[qpos_id + 1]);
+						send_data_vec.push_back(&d->qpos[qpos_id + 2]);
+						send_data_vec.push_back(&d->qpos[qpos_id + 3]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not implemented yet", attribute.c_str(), send_object.first.c_str());
+					}
 				}
-
 				meta_data_json["send"][send_object.first].append(attribute);
 			}
 		}
@@ -165,7 +178,6 @@ void MjStateManager::send_meta_data()
 					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 2]);
 					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
 				}
-
 				meta_data_json["receive"][receive_object.first].append(attribute);
 			}
 		}
@@ -290,7 +302,7 @@ void MjStateManager::send_meta_data()
 		free(buffer); });
 }
 
-void MjStateManager::communicate()
+void MjStateController::communicate()
 {
 	if (is_enabled)
 	{
@@ -324,7 +336,7 @@ void MjStateManager::communicate()
 	}
 }
 
-void MjStateManager::deinit()
+void MjStateController::deinit()
 {
 	ROS_INFO("Closing the socket client on %s", socket_addr.c_str());
 	if (is_enabled)

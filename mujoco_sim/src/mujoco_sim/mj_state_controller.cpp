@@ -128,10 +128,29 @@ void MjStateController::send_meta_data()
 					send_data_vec.push_back(&d->xquat[4 * body_id + 2]);
 					send_data_vec.push_back(&d->xquat[4 * body_id + 3]);
 				}
-				else if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue") == 0)
+				else if (strcmp(attribute.c_str(), "joint_rvalue") == 0)
 				{
-					const int qpos_id = m->jnt_qposadr[joint_id];
-					send_data_vec.push_back(&d->qpos[qpos_id]);
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						send_data_vec.push_back(&d->qpos[qpos_id]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not supported", attribute.c_str(), send_object.first.c_str());
+					}
+				}
+				else if (strcmp(attribute.c_str(), "joint_tvalue") == 0)
+				{
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						send_data_vec.push_back(&d->qpos[qpos_id]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not supported", attribute.c_str(), send_object.first.c_str());
+					}
 				}
 				else if (strcmp(attribute.c_str(), "joint_position") == 0)
 				{
@@ -233,6 +252,7 @@ void MjStateController::send_meta_data()
 				for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
 				{
 					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
+					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
 					if (body_id != -1 && m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 					{
 						mjtNum xpos_desired[3] = {d->xpos[3 * body_id], d->xpos[3 * body_id + 1], d->xpos[3 * body_id + 2]};
@@ -285,6 +305,21 @@ void MjStateController::send_meta_data()
 								d->qpos[qpos_id + 2] = qpos[2];
 								d->qpos[qpos_id + 3] = qpos[3];
 							}
+						}
+					}
+					else if (joint_id != -1)
+					{
+						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE || m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
+						{
+							const int qpos_id = m->jnt_qposadr[joint_id];
+							d->qpos[qpos_id] = *buffer_addr++;
+						}
+						else if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
+						{
+							const int qpos_id = m->jnt_qposadr[joint_id];
+							d->qpos[qpos_id] = *buffer_addr++;
+							d->qpos[qpos_id + 1] = *buffer_addr++;
+							d->qpos[qpos_id + 2] = *buffer_addr++;
 						}
 					}
 				}

@@ -15,7 +15,7 @@
     </worldbody>
 
     <worldbody>
-        <body name="bowling" pos="0 0 5">
+        <body name="bowling" pos="0 0 1">
             <freejoint />
             <geom type="sphere" size=".1 .1 .1" rgba="0 0 .9 1" mass="10" />
         </body>

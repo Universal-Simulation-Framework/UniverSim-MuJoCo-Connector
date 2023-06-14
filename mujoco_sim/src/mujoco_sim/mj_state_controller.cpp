@@ -411,6 +411,12 @@ void MjStateController::communicate()
 		{
 			*receive_data_vec[i] = receive_buffer[i + 1];
 		}
+
+		// for (int i = 0; i < m->nv; i++)
+		// {
+		// 	ROS_INFO("%d - %f", i, d->qfrc_applied[i]);
+		// }
+		
 	}
 }
 

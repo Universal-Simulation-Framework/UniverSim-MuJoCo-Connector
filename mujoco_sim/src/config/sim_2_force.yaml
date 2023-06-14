@@ -1,0 +1,5 @@
+send:
+  bowling: [position, quaternion]
+
+receive:
+  bowling: [force]

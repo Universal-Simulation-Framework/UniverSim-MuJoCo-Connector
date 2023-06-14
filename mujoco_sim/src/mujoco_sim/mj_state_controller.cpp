@@ -67,11 +67,8 @@ void MjStateController::init(const int port)
 				const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object_param.first.c_str());
 				if (body_id != -1 || joint_id != -1)
 				{
-					if (receive_objects.count(send_object_param.first) == 0)
-					{
-						log += send_object_param.first + " ";
-						send_objects[send_object_param.first] = send_data;
-					}
+					log += send_object_param.first + " ";
+					send_objects[send_object_param.first] = send_data;
 				}
 			}
 		}
@@ -106,6 +103,7 @@ void MjStateController::send_meta_data()
 		meta_data_json["simulator"] = "mujoco";
 		meta_data_json["length_unit"] = "m";
 		meta_data_json["angle_unit"] = "rad";
+		meta_data_json["force_unit"] = "N";
 		meta_data_json["handedness"] = "rhs";
 
 		mtx.lock();
@@ -171,6 +169,28 @@ void MjStateController::send_meta_data()
 						ROS_WARN("%s for %s not implemented yet", attribute.c_str(), send_object.first.c_str());
 					}
 				}
+				else if (strcmp(attribute.c_str(), "force") == 0)
+				{
+					const int dof_id = m->body_dofadr[body_id];
+					const int dof_num = m->body_dofnum[body_id];
+					if (dof_num == 6)
+					{
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 1]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 2]);
+					}
+				}
+				else if (strcmp(attribute.c_str(), "torque") == 0)
+				{
+					const int dof_id = m->body_dofadr[body_id];
+					const int dof_num = m->body_dofnum[body_id];
+					if (dof_num == 6)
+					{
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 3]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 4]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 5]);
+					}
+				}
 				meta_data_json["send"][send_object.first].append(attribute);
 			}
 		}
@@ -180,8 +200,9 @@ void MjStateController::send_meta_data()
 		mtx.lock();
 		for (const std::pair<std::string, std::vector<std::string>> &receive_object : receive_objects)
 		{
-			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (receive_object.first + "_ref").c_str());
-			const int mocap_id = m->body_mocapid[body_id];
+			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (receive_object.first).c_str());
+			const int body_ref_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (receive_object.first + "_ref").c_str());
+			const int mocap_id = m->body_mocapid[body_ref_id];
 			for (const std::string &attribute : receive_object.second)
 			{
 				if (strcmp(attribute.c_str(), "position") == 0)
@@ -196,6 +217,28 @@ void MjStateController::send_meta_data()
 					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 1]);
 					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 2]);
 					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
+				}
+				else if (strcmp(attribute.c_str(), "force") == 0)
+				{
+					const int dof_id = m->body_dofadr[body_id];
+					const int dof_num = m->body_dofnum[body_id];
+					if (dof_num == 6)
+					{
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id]);
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 1]);
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 2]);
+					}
+				}
+				else if (strcmp(attribute.c_str(), "torque") == 0)
+				{
+					const int dof_id = m->body_dofadr[body_id];
+					const int dof_num = m->body_dofnum[body_id];
+					if (dof_num == 6)
+					{
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 3]);
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 4]);
+						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 5]);
+					}
 				}
 				meta_data_json["receive"][receive_object.first].append(attribute);
 			}

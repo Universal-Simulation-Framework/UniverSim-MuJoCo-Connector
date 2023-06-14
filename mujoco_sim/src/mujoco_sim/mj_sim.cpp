@@ -865,8 +865,23 @@ static void init_references()
 		tinyxml2::XMLElement *worldbody_element = xml_doc.NewElement("worldbody");
 		mujoco_element->LinkEndChild(worldbody_element);
 
+		bool create_body_ref = true;
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_param : receive_params)
 		{
+			for (int i = 0; i < receive_param.second.size(); i++)
+			{
+				if (strcmp(std::string(receive_param.second[i]).c_str(), "position") == 0 || 
+					strcmp(std::string(receive_param.second[i]).c_str(), "quaternion") == 0)
+				{
+					create_body_ref = true;
+					break;
+				}
+				create_body_ref = false;
+			}
+			if (!create_body_ref)
+			{
+				continue;
+			}
 			
 			const std::string body_name = receive_param.first;
 			const std::string ref_body_name = receive_param.first + "_ref";

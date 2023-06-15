@@ -14,7 +14,7 @@
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
-
+<!-- 
     <group ns="sim_2">
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7501">
@@ -22,7 +22,7 @@
             <param name="world" value="$(arg world_2)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
-    </group>
+    </group> -->
 
     <!-- <node pkg="universim_server" type="universim_server_node" name="universim_server" output="screen"
     args="7500 7501 7502"/> -->

@@ -2,4 +2,4 @@ send:
   bowling: [position, quaternion]
 
 receive:
-  bowling: [force]
+  bowling: [force, torque]

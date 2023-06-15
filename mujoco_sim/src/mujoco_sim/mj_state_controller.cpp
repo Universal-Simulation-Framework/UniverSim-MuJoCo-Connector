@@ -207,38 +207,63 @@ void MjStateController::send_meta_data()
 			{
 				if (strcmp(attribute.c_str(), "position") == 0)
 				{
-					receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id]);
-					receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 1]);
-					receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 2]);
+					if (body_ref_id == -1)
+					{
+						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
+						{
+							int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+							receive_data_vec.push_back(&d->qpos[qpos_id]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
+						}
+						else
+						{
+							ROS_WARN("Not implemented yet");
+						}
+					}
+					else
+					{
+						receive_data_vec.push_back(&d->mocap_pos[3 * body_id]);
+						receive_data_vec.push_back(&d->mocap_pos[3 * body_id + 1]);
+						receive_data_vec.push_back(&d->mocap_pos[3 * body_id + 2]);
+					}
 				}
 				else if (strcmp(attribute.c_str(), "quaternion") == 0)
 				{
-					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id]);
-					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 1]);
-					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 2]);
-					receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
+					if (body_ref_id == -1)
+					{
+						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
+						{
+							int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+							receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 4]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 5]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 6]);
+						}
+						else
+						{
+							ROS_WARN("Not implemented yet");
+						}
+					}
+					else
+					{
+						receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id]);
+						receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 1]);
+						receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 2]);
+						receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
+					}
 				}
 				else if (strcmp(attribute.c_str(), "force") == 0)
 				{
-					const int dof_id = m->body_dofadr[body_id];
-					const int dof_num = m->body_dofnum[body_id];
-					if (dof_num == 6)
-					{
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 1]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 2]);
-					}
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id]);
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 1]);
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 2]);
 				}
 				else if (strcmp(attribute.c_str(), "torque") == 0)
 				{
-					const int dof_id = m->body_dofadr[body_id];
-					const int dof_num = m->body_dofnum[body_id];
-					if (dof_num == 6)
-					{
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 3]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 4]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 5]);
-					}
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 3]);
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 4]);
+					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 5]);
 				}
 				meta_data_json["receive"][receive_object.first].append(attribute);
 			}
@@ -411,12 +436,6 @@ void MjStateController::communicate()
 		{
 			*receive_data_vec[i] = receive_buffer[i + 1];
 		}
-
-		// for (int i = 0; i < m->nv; i++)
-		// {
-		// 	ROS_INFO("%d - %f", i, d->qfrc_applied[i]);
-		// }
-		
 	}
 }
 

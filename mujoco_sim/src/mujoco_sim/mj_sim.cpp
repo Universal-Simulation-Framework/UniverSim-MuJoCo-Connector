@@ -865,18 +865,54 @@ static void init_references()
 		tinyxml2::XMLElement *worldbody_element = xml_doc.NewElement("worldbody");
 		mujoco_element->LinkEndChild(worldbody_element);
 
-		bool create_body_ref = true;
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_param : receive_params)
 		{
+			bool create_body_ref = false;
 			for (int i = 0; i < receive_param.second.size(); i++)
 			{
 				if (strcmp(std::string(receive_param.second[i]).c_str(), "position") == 0 || 
 					strcmp(std::string(receive_param.second[i]).c_str(), "quaternion") == 0)
 				{
-					create_body_ref = true;
-					break;
+					std::vector<std::string> attribute_names;
+					if (ros::param::get("~send/" + receive_param.first, attribute_names))
+					{
+						if (std::find(attribute_names.begin(), attribute_names.end(), "force") == attribute_names.end() &&
+							std::find(attribute_names.begin(), attribute_names.end(), "torque") == attribute_names.end())
+						{
+							create_body_ref = true;
+							break;
+						}
+						else
+						{
+							const std::string body_name = receive_param.first;
+							if (mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str()) != -1)
+							{
+								do_each_child_element(mujoco_element, "worldbody", [&xml_doc, body_name](tinyxml2::XMLElement *worldbody_element)
+									  {
+										for (tinyxml2::XMLElement *body_element = worldbody_element->FirstChildElement("body");
+											body_element != nullptr;
+											body_element = body_element->NextSiblingElement("body"))
+										{
+											if (body_element->Attribute("name") != nullptr && body_element->Attribute("name", body_name.c_str()))
+											{
+												body_element->SetAttribute("gravcomp", "1");
+												for (tinyxml2::XMLElement *geom_element = body_element->FirstChildElement("geom");
+													geom_element != nullptr;
+													geom_element = geom_element->NextSiblingElement("geom"))
+												{
+													geom_element->SetAttribute("rgba", ".9 0 0 1");
+												}
+											} 
+										}; });
+							}
+						}
+					}
+					else
+					{
+						create_body_ref = true;
+						break;
+					}
 				}
-				create_body_ref = false;
 			}
 			if (!create_body_ref)
 			{
@@ -1066,23 +1102,23 @@ bool MjSim::remove_body(const std::set<std::string> &body_names)
 
 void MjSim::controller()
 {
-	mj_mulM(m, d, tau, ddq);
-	for (const std::string &joint_name : MjSim::controlled_joints)
-	{
-		const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-		const int dof_id = m->jnt_dofadr[joint_id];
-		tau[dof_id] += d->qfrc_bias[dof_id];
-	}
+	// mj_mulM(m, d, tau, ddq);
+	// for (const std::string &joint_name : MjSim::controlled_joints)
+	// {
+	// 	const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
+	// 	const int dof_id = m->jnt_dofadr[joint_id];
+	// 	tau[dof_id] += d->qfrc_bias[dof_id];
+	// }
 
-	mju_copy(d->qfrc_applied, tau, m->nv);
+	// mju_copy(d->qfrc_applied, tau, m->nv);
 
-	for (int dof_id = 0; dof_id < m->nv; dof_id++)
-	{
-		if (mju_abs(dq[dof_id]) > mjMINVAL)
-		{
-			d->qvel[dof_id] = dq[dof_id];
-		}
-	}
+	// for (int dof_id = 0; dof_id < m->nv; dof_id++)
+	// {
+	// 	if (mju_abs(dq[dof_id]) > mjMINVAL)
+	// 	{
+	// 		d->qvel[dof_id] = dq[dof_id];
+	// 	}
+	// }
 
 	mju_zero(ddq, m->nv);
 	mju_zero(dq, m->nv);

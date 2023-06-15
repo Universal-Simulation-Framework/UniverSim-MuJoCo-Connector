@@ -1,5 +1,5 @@
 <mujoco>
-    <option timestep="0.005" integrator="RK4" gravity="0 0 -0.11">
+    <option timestep="0.001" integrator="RK4" gravity="0 0 -0.1">
         <flag sensornoise="disable" energy="enable" contact="enable" />
     </option>
 
@@ -15,9 +15,9 @@
     </worldbody>
 
     <worldbody>
-        <body name="bowling" pos="0 0 1">
+        <body name="bowling" pos="0 0 2">
             <freejoint />
-            <geom type="sphere" size=".1 .1 .1" rgba="0 0 .9 1" mass="10" />
+            <geom type="sphere" size=".1 .1 .1" rgba="0 0 .9 1" mass="1" />
         </body>
     </worldbody>
 </mujoco>

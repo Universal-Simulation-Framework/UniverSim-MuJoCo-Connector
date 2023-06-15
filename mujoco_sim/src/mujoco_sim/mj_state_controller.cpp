@@ -171,25 +171,25 @@ void MjStateController::send_meta_data()
 				}
 				else if (strcmp(attribute.c_str(), "force") == 0)
 				{
-					const int dof_id = m->body_dofadr[body_id];
-					const int dof_num = m->body_dofnum[body_id];
-					if (dof_num == 6)
+					if (contact_efforts.count(send_object.first) == 0)
 					{
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id]);
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 1]);
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 2]);
+						contact_efforts[send_object.first] = std::vector<mjtNum>(6 ,0.0);
 					}
+
+					send_data_vec.push_back(&contact_efforts[send_object.first][0]);
+					send_data_vec.push_back(&contact_efforts[send_object.first][1]);
+					send_data_vec.push_back(&contact_efforts[send_object.first][2]);
 				}
 				else if (strcmp(attribute.c_str(), "torque") == 0)
 				{
-					const int dof_id = m->body_dofadr[body_id];
-					const int dof_num = m->body_dofnum[body_id];
-					if (dof_num == 6)
+					if (contact_efforts.count(send_object.first) == 0)
 					{
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 3]);
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 4]);
-						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 5]);
+						contact_efforts[send_object.first] = std::vector<mjtNum>(6 ,0.0);
 					}
+
+					send_data_vec.push_back(&contact_efforts[send_object.first][4]);
+					send_data_vec.push_back(&contact_efforts[send_object.first][5]);
+					send_data_vec.push_back(&contact_efforts[send_object.first][6]);
 				}
 				meta_data_json["send"][send_object.first].append(attribute);
 			}
@@ -223,9 +223,9 @@ void MjStateController::send_meta_data()
 					}
 					else
 					{
-						receive_data_vec.push_back(&d->mocap_pos[3 * body_id]);
-						receive_data_vec.push_back(&d->mocap_pos[3 * body_id + 1]);
-						receive_data_vec.push_back(&d->mocap_pos[3 * body_id + 2]);
+						receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id]);
+						receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 1]);
+						receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 2]);
 					}
 				}
 				else if (strcmp(attribute.c_str(), "quaternion") == 0)
@@ -409,6 +409,67 @@ void MjStateController::communicate()
 {
 	if (is_enabled)
 	{
+		for (std::pair<const std::string, std::vector<mjtNum>> &contact_effort : contact_efforts)
+		{
+			for (mjtNum &effort : contact_effort.second)
+			{
+				effort = 0.0;
+			}
+		}
+		
+		for (int contact_id = 0; contact_id < d->ncon; contact_id++)
+		{
+			const mjContact contact = d->contact[contact_id];
+			
+			const int geom1_id = contact.geom1;
+			const int body1_id = m->geom_bodyid[geom1_id];
+			const std::string body1_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body1_id);
+
+			const int geom2_id = contact.geom2;
+			const int body2_id = m->geom_bodyid[geom2_id];
+			const std::string body2_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body2_id);
+
+			if (contact_efforts.count(body1_name) != 0 || contact_efforts.count(body2_name) != 0)
+			{
+				mjtNum contact_effort[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+				mj_contactForce(m, d, contact_id, contact_effort);
+				mjtNum force[3] = {contact_effort[0], contact_effort[1], contact_effort[2]};
+				mjtNum torque[3] = {contact_effort[3], contact_effort[4], contact_effort[5]};
+
+				mju_rotVecMat(force, force, contact.frame);
+				mju_rotVecMat(torque, torque, contact.frame);
+
+				for (int i = 0; i < 3; i++)
+				{
+					contact_efforts[body1_name][i] = force[i];
+				}
+				for (int i = 3; i < 6; i++)
+				{
+					contact_efforts[body1_name][i] = torque[i-3];
+				}
+			}
+
+			
+			if (contact_efforts.count(body2_name) != 0)
+			{
+				mjtNum contact_effort[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+				mj_contactForce(m, d, contact_id, contact_effort);
+				mjtNum force[3] = {contact_effort[0], contact_effort[1], contact_effort[2]};
+				mjtNum torque[3] = {contact_effort[3], contact_effort[4], contact_effort[5]};
+
+				mju_rotVecMat(force, force, contact.frame);
+				mju_rotVecMat(torque, torque, contact.frame);
+				for (int i = 0; i < 3; i++)
+				{
+					contact_efforts[body1_name][i] = force[i];
+				}
+				for (int i = 3; i < 6; i++)
+				{
+					contact_efforts[body1_name][i] = torque[i-3];
+				}
+			}
+		}
+
 		*send_buffer = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
 		for (size_t i = 0; i < send_buffer_size - 1; i++)

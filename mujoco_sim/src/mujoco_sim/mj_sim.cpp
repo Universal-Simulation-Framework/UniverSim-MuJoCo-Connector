@@ -870,9 +870,12 @@ static void init_references()
 			bool create_body_ref = false;
 			for (int i = 0; i < receive_param.second.size(); i++)
 			{
-				if (strcmp(std::string(receive_param.second[i]).c_str(), "position") == 0 || 
+				if (strcmp(std::string(receive_param.second[i]).c_str(), "position") == 0 ||
 					strcmp(std::string(receive_param.second[i]).c_str(), "quaternion") == 0)
 				{
+					// create_body_ref = true;
+					// break;
+
 					std::vector<std::string> attribute_names;
 					if (ros::param::get("~send/" + receive_param.first, attribute_names))
 					{
@@ -902,7 +905,7 @@ static void init_references()
 												{
 													geom_element->SetAttribute("rgba", ".9 0 0 1");
 												}
-											} 
+											}
 										}; });
 							}
 						}
@@ -918,13 +921,13 @@ static void init_references()
 			{
 				continue;
 			}
-			
+
 			const std::string body_name = receive_param.first;
 			const std::string ref_body_name = receive_param.first + "_ref";
-			
+
 			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
 			const int ref_body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, ref_body_name.c_str());
-			
+
 			if (body_id != -1 && ref_body_id == -1)
 			{
 				tinyxml2::XMLElement *ref_body_element;
@@ -945,14 +948,14 @@ static void init_references()
 												ref_body_element = body_element->DeepClone(&xml_doc)->ToElement();
 											} 
 										}; });
-										
+
 				ref_body_element->SetAttribute("name", ref_body_name.c_str());
 
 				ref_body_element->SetAttribute("mocap", "true");
 
 				for (tinyxml2::XMLElement *geom_element = ref_body_element->FirstChildElement("geom");
-					geom_element != nullptr;
-					geom_element = geom_element->NextSiblingElement("geom"))
+					 geom_element != nullptr;
+					 geom_element = geom_element->NextSiblingElement("geom"))
 				{
 					geom_element->SetAttribute("rgba", ".5 .5 .5 1");
 				}
@@ -970,7 +973,7 @@ static void init_references()
 				{
 					joint_elements.push_back(joint_element);
 				}
-				
+
 				for (tinyxml2::XMLElement *joint_element : joint_elements)
 				{
 					ref_body_element->DeleteChild(joint_element);
@@ -986,12 +989,12 @@ static void init_references()
 				weld_element->SetAttribute("torquescale", 0.9);
 
 				for (int each_body_id = 0; each_body_id < m->nbody; each_body_id++)
-				{		
+				{
 					tinyxml2::XMLElement *exclude_element = xml_doc.NewElement("exclude");
 					contact_element->LinkEndChild(exclude_element);
 
 					exclude_element->SetAttribute("body1", mj_id2name(m, mjtObj::mjOBJ_BODY, each_body_id));
-					exclude_element->SetAttribute("body2", ref_body_name.c_str());	
+					exclude_element->SetAttribute("body2", ref_body_name.c_str());
 				}
 			}
 		}
@@ -1102,23 +1105,22 @@ bool MjSim::remove_body(const std::set<std::string> &body_names)
 
 void MjSim::controller()
 {
-	// mj_mulM(m, d, tau, ddq);
-	// for (const std::string &joint_name : MjSim::controlled_joints)
-	// {
-	// 	const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-	// 	const int dof_id = m->jnt_dofadr[joint_id];
-	// 	tau[dof_id] += d->qfrc_bias[dof_id];
-	// }
+	mj_mulM(m, d, tau, ddq);
+	for (const std::string &joint_name : MjSim::controlled_joints)
+	{
+		const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
+		const int dof_id = m->jnt_dofadr[joint_id];
+		tau[dof_id] += d->qfrc_bias[dof_id];
+		d->qfrc_applied[dof_id] = tau[dof_id];
+	}
 
-	// mju_copy(d->qfrc_applied, tau, m->nv);
-
-	// for (int dof_id = 0; dof_id < m->nv; dof_id++)
-	// {
-	// 	if (mju_abs(dq[dof_id]) > mjMINVAL)
-	// 	{
-	// 		d->qvel[dof_id] = dq[dof_id];
-	// 	}
-	// }
+	for (int dof_id = 0; dof_id < m->nv; dof_id++)
+	{
+		if (mju_abs(dq[dof_id]) > mjMINVAL)
+		{
+			d->qvel[dof_id] = dq[dof_id];
+		}
+	}
 
 	mju_zero(ddq, m->nv);
 	mju_zero(dq, m->nv);

@@ -109,7 +109,9 @@ void MjStateController::send_meta_data()
 		mtx.lock();
 		for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
 		{
-			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
+			const std::string body_name = send_object.first;
+			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
+			const int body_ref_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (body_name + "_ref").c_str());
 			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
 			for (const std::string &attribute : send_object.second)
 			{
@@ -171,25 +173,48 @@ void MjStateController::send_meta_data()
 				}
 				else if (strcmp(attribute.c_str(), "force") == 0)
 				{
-					if (contact_efforts.count(send_object.first) == 0)
+					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 					{
-						contact_efforts[send_object.first] = std::vector<mjtNum>(6 ,0.0);
+						const int dof_id = m->body_dofadr[body_id];
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 1]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 2]);
 					}
-
-					send_data_vec.push_back(&contact_efforts[send_object.first][0]);
-					send_data_vec.push_back(&contact_efforts[send_object.first][1]);
-					send_data_vec.push_back(&contact_efforts[send_object.first][2]);
+					else
+					{
+						ROS_WARN("Not implemented yet");
+					}
 				}
 				else if (strcmp(attribute.c_str(), "torque") == 0)
 				{
-					if (contact_efforts.count(send_object.first) == 0)
+					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 					{
-						contact_efforts[send_object.first] = std::vector<mjtNum>(6 ,0.0);
+						const int dof_id = m->body_dofadr[body_id];
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 3]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 4]);
+						send_data_vec.push_back(&d->qfrc_constraint[dof_id + 5]);
 					}
-
-					send_data_vec.push_back(&contact_efforts[send_object.first][4]);
-					send_data_vec.push_back(&contact_efforts[send_object.first][5]);
-					send_data_vec.push_back(&contact_efforts[send_object.first][6]);
+					else
+					{
+						ROS_WARN("Not implemented yet");
+					}
+				}
+				else if (strcmp(attribute.c_str(), "relative_velocity") == 0)
+				{
+					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
+					{
+						const int dof_id = m->body_dofadr[body_id];
+						send_data_vec.push_back(&d->qvel[dof_id]);
+						send_data_vec.push_back(&d->qvel[dof_id + 1]);
+						send_data_vec.push_back(&d->qvel[dof_id + 2]);
+						send_data_vec.push_back(&d->qvel[dof_id + 3]);
+						send_data_vec.push_back(&d->qvel[dof_id + 4]);
+						send_data_vec.push_back(&d->qvel[dof_id + 5]);
+					}
+					else
+					{
+						ROS_WARN("Not implemented yet");
+					}
 				}
 				meta_data_json["send"][send_object.first].append(attribute);
 			}
@@ -200,9 +225,11 @@ void MjStateController::send_meta_data()
 		mtx.lock();
 		for (const std::pair<std::string, std::vector<std::string>> &receive_object : receive_objects)
 		{
-			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (receive_object.first).c_str());
-			const int body_ref_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (receive_object.first + "_ref").c_str());
+			const std::string body_name = receive_object.first;
+			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
+			const int body_ref_id = mj_name2id(m, mjtObj::mjOBJ_BODY, (body_name + "_ref").c_str());
 			const int mocap_id = m->body_mocapid[body_ref_id];
+			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, receive_object.first.c_str());
 			for (const std::string &attribute : receive_object.second)
 			{
 				if (strcmp(attribute.c_str(), "position") == 0)
@@ -240,6 +267,14 @@ void MjStateController::send_meta_data()
 							receive_data_vec.push_back(&d->qpos[qpos_id + 5]);
 							receive_data_vec.push_back(&d->qpos[qpos_id + 6]);
 						}
+						else if (m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
+						{
+							int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+							receive_data_vec.push_back(&d->qpos[qpos_id]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
+							receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
+						}
 						else
 						{
 							ROS_WARN("Not implemented yet");
@@ -253,17 +288,79 @@ void MjStateController::send_meta_data()
 						receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
 					}
 				}
+				else if (strcmp(attribute.c_str(), "joint_position") == 0)
+				{
+					ROS_WARN("%s for %s not implemented yet", attribute.c_str(), body_name.c_str());
+				}
+				else if (strcmp(attribute.c_str(), "joint_quaternion") == 0)
+				{
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						receive_data_vec.push_back(&d->qpos[qpos_id]);
+						receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
+						receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
+						receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not implemented yet", attribute.c_str(), body_name.c_str());
+					}
+				}
+				else if (strcmp(attribute.c_str(), "joint_rvalue") == 0)
+				{
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						receive_data_vec.push_back(&d->qpos[qpos_id]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not supported", attribute.c_str(), receive_object.first.c_str());
+					}
+				}
+				else if (strcmp(attribute.c_str(), "joint_tvalue") == 0)
+				{
+					if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
+					{
+						const int qpos_id = m->jnt_qposadr[joint_id];
+						receive_data_vec.push_back(&d->qpos[qpos_id]);
+					}
+					else
+					{
+						ROS_WARN("%s for %s not supported", attribute.c_str(), receive_object.first.c_str());
+					}
+				}
 				else if (strcmp(attribute.c_str(), "force") == 0)
 				{
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id]);
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 1]);
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 2]);
+					const int dof_id = m->body_dofadr[body_id];
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id]);
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id + 1]);
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id + 2]);
 				}
 				else if (strcmp(attribute.c_str(), "torque") == 0)
 				{
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 3]);
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 4]);
-					receive_data_vec.push_back(&d->xfrc_applied[6 * body_id + 5]);
+					const int dof_id = m->body_dofadr[body_id];
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id + 3]);
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id + 4]);
+					receive_data_vec.push_back(&d->qfrc_applied[dof_id + 5]);
+				}
+				else if (strcmp(attribute.c_str(), "relative_velocity") == 0)
+				{
+					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
+					{
+						const int dof_id = m->body_dofadr[body_id];
+						receive_data_vec.push_back(&d->qvel[dof_id]);
+						receive_data_vec.push_back(&d->qvel[dof_id + 1]);
+						receive_data_vec.push_back(&d->qvel[dof_id + 2]);
+						receive_data_vec.push_back(&d->qvel[dof_id + 3]);
+						receive_data_vec.push_back(&d->qvel[dof_id + 4]);
+						receive_data_vec.push_back(&d->qvel[dof_id + 5]);
+					}
+					else
+					{
+						ROS_WARN("Not implemented yet");
+					}
 				}
 				meta_data_json["receive"][receive_object.first].append(attribute);
 			}
@@ -409,66 +506,66 @@ void MjStateController::communicate()
 {
 	if (is_enabled)
 	{
-		for (std::pair<const std::string, std::vector<mjtNum>> &contact_effort : contact_efforts)
-		{
-			for (mjtNum &effort : contact_effort.second)
-			{
-				effort = 0.0;
-			}
-		}
+		// for (std::pair<const std::string, std::vector<mjtNum>> &contact_effort : contact_efforts)
+		// {
+		// 	for (mjtNum &effort : contact_effort.second)
+		// 	{
+		// 		effort = 0.0;
+		// 	}
+		// }
 		
-		for (int contact_id = 0; contact_id < d->ncon; contact_id++)
-		{
-			const mjContact contact = d->contact[contact_id];
+		// for (int contact_id = 0; contact_id < d->ncon; contact_id++)
+		// {
+		// 	const mjContact contact = d->contact[contact_id];
 			
-			const int geom1_id = contact.geom1;
-			const int body1_id = m->geom_bodyid[geom1_id];
-			const std::string body1_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body1_id);
+		// 	const int geom1_id = contact.geom1;
+		// 	const int body1_id = m->geom_bodyid[geom1_id];
+		// 	const std::string body1_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body1_id);
 
-			const int geom2_id = contact.geom2;
-			const int body2_id = m->geom_bodyid[geom2_id];
-			const std::string body2_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body2_id);
+		// 	const int geom2_id = contact.geom2;
+		// 	const int body2_id = m->geom_bodyid[geom2_id];
+		// 	const std::string body2_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body2_id);
 
-			if (contact_efforts.count(body1_name) != 0 || contact_efforts.count(body2_name) != 0)
-			{
-				mjtNum contact_effort[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-				mj_contactForce(m, d, contact_id, contact_effort);
-				mjtNum force[3] = {contact_effort[0], contact_effort[1], contact_effort[2]};
-				mjtNum torque[3] = {contact_effort[3], contact_effort[4], contact_effort[5]};
+		// 	if (contact_efforts.count(body1_name) != 0 || contact_efforts.count(body2_name) != 0)
+		// 	{
+		// 		mjtNum contact_effort[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+		// 		mj_contactForce(m, d, contact_id, contact_effort);
+		// 		mjtNum force[3] = {contact_effort[0], contact_effort[1], contact_effort[2]};
+		// 		mjtNum torque[3] = {contact_effort[3], contact_effort[4], contact_effort[5]};
 
-				mju_rotVecMat(force, force, contact.frame);
-				mju_rotVecMat(torque, torque, contact.frame);
+		// 		mju_rotVecMat(force, force, contact.frame);
+		// 		mju_rotVecMat(torque, torque, contact.frame);
 
-				for (int i = 0; i < 3; i++)
-				{
-					contact_efforts[body1_name][i] = force[i];
-				}
-				for (int i = 3; i < 6; i++)
-				{
-					contact_efforts[body1_name][i] = torque[i-3];
-				}
-			}
+		// 		ROS_INFO("%s - %s [%f %f %f %f %f %f]", 
+		// 			body1_name.c_str(), body2_name.c_str(),
+		// 			force[0], force[1], force[2],
+		// 			torque[0], torque[1], torque[2]);
 
-			
-			if (contact_efforts.count(body2_name) != 0)
-			{
-				mjtNum contact_effort[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-				mj_contactForce(m, d, contact_id, contact_effort);
-				mjtNum force[3] = {contact_effort[0], contact_effort[1], contact_effort[2]};
-				mjtNum torque[3] = {contact_effort[3], contact_effort[4], contact_effort[5]};
-
-				mju_rotVecMat(force, force, contact.frame);
-				mju_rotVecMat(torque, torque, contact.frame);
-				for (int i = 0; i < 3; i++)
-				{
-					contact_efforts[body1_name][i] = force[i];
-				}
-				for (int i = 3; i < 6; i++)
-				{
-					contact_efforts[body1_name][i] = torque[i-3];
-				}
-			}
-		}
+		// 		if (contact_efforts.count(body1_name) != 0)
+		// 		{
+		// 			for (int i = 0; i < 3; i++)
+		// 			{
+		// 				contact_efforts[body1_name][i] += force[i];
+		// 			}
+		// 			for (int i = 3; i < 6; i++)
+		// 			{
+		// 				contact_efforts[body1_name][i] += torque[i-3];
+		// 			}
+		// 		}
+				
+		// 		if (contact_efforts.count(body2_name) != 0)
+		// 		{
+		// 			for (int i = 0; i < 3; i++)
+		// 			{
+		// 				contact_efforts[body2_name][i] -= force[i];
+		// 			}
+		// 			for (int i = 3; i < 6; i++)
+		// 			{
+		// 				contact_efforts[body2_name][i] -= torque[i-3];
+		// 			}
+		// 		}
+		// 	}
+		// }
 
 		*send_buffer = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 

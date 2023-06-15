@@ -2,4 +2,4 @@ send:
   bowling: [force, torque]
 
 receive:
-  bowling: [position, quaternion]
+  bowling: [position, quaternion, relative_velocity]

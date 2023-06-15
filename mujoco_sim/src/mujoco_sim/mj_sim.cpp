@@ -867,65 +867,46 @@ static void init_references()
 
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_param : receive_params)
 		{
-			bool create_body_ref = false;
-			for (int i = 0; i < receive_param.second.size(); i++)
-			{
-				if (strcmp(std::string(receive_param.second[i]).c_str(), "position") == 0 ||
-					strcmp(std::string(receive_param.second[i]).c_str(), "quaternion") == 0)
-				{
-					// create_body_ref = true;
-					// break;
+			std::vector<std::string> receive_attribute_names;
+			const std::string body_name = receive_param.first;
+			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
 
-					std::vector<std::string> attribute_names;
-					if (ros::param::get("~send/" + receive_param.first, attribute_names))
+			if (ros::param::get("~receive/" + body_name, receive_attribute_names))
+			{
+				if (std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "position") != receive_attribute_names.end() &&
+					std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "quaternion") != receive_attribute_names.end() &&
+					std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "relative_velocity") != receive_attribute_names.end())
+				{
+					if (body_id != -1)
 					{
-						if (std::find(attribute_names.begin(), attribute_names.end(), "force") == attribute_names.end() &&
-							std::find(attribute_names.begin(), attribute_names.end(), "torque") == attribute_names.end())
-						{
-							create_body_ref = true;
-							break;
-						}
-						else
-						{
-							const std::string body_name = receive_param.first;
-							if (mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str()) != -1)
-							{
-								do_each_child_element(mujoco_element, "worldbody", [&xml_doc, body_name](tinyxml2::XMLElement *worldbody_element)
-									  {
-										for (tinyxml2::XMLElement *body_element = worldbody_element->FirstChildElement("body");
-											body_element != nullptr;
-											body_element = body_element->NextSiblingElement("body"))
-										{
-											if (body_element->Attribute("name") != nullptr && body_element->Attribute("name", body_name.c_str()))
-											{
-												body_element->SetAttribute("gravcomp", "1");
-												for (tinyxml2::XMLElement *geom_element = body_element->FirstChildElement("geom");
-													geom_element != nullptr;
-													geom_element = geom_element->NextSiblingElement("geom"))
+						do_each_child_element(mujoco_element, "worldbody", [&xml_doc, body_name](tinyxml2::XMLElement *worldbody_element)
+											  {
+												for (tinyxml2::XMLElement *body_element = worldbody_element->FirstChildElement("body");
+													body_element != nullptr;
+													body_element = body_element->NextSiblingElement("body"))
 												{
-													geom_element->SetAttribute("rgba", ".9 0 0 1");
-												}
-											}
-										}; });
-							}
-						}
-					}
-					else
-					{
-						create_body_ref = true;
-						break;
+													if (body_element->Attribute("name") != nullptr && body_element->Attribute("name", body_name.c_str()))
+													{
+														body_element->SetAttribute("gravcomp", "1");
+														for (tinyxml2::XMLElement *geom_element = body_element->FirstChildElement("geom");
+															geom_element != nullptr;
+															geom_element = geom_element->NextSiblingElement("geom"))
+														{
+															geom_element->SetAttribute("rgba", ".9 0 0 1");
+														}
+													}
+												}; });
+						continue;
 					}
 				}
-			}
-			if (!create_body_ref)
-			{
-				continue;
+				else if (std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "position") == receive_attribute_names.end() &&
+						 std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "quaternion") == receive_attribute_names.end())
+				{
+					continue;
+				}
 			}
 
-			const std::string body_name = receive_param.first;
 			const std::string ref_body_name = receive_param.first + "_ref";
-
-			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
 			const int ref_body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, ref_body_name.c_str());
 
 			if (body_id != -1 && ref_body_id == -1)
@@ -986,7 +967,7 @@ static void init_references()
 
 				weld_element->SetAttribute("body1", body_name.c_str());
 				weld_element->SetAttribute("body2", ref_body_name.c_str());
-				weld_element->SetAttribute("torquescale", 0.9);
+				weld_element->SetAttribute("torquescale", 0);
 
 				for (int each_body_id = 0; each_body_id < m->nbody; each_body_id++)
 				{

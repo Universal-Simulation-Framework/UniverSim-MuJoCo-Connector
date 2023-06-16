@@ -27,20 +27,26 @@
 #include <ros/ros.h>
 #include <zmq.hpp>
 
-std::string host = "tcp://127.0.0.1";
-
 std::map<std::string, std::vector<std::string>> MjStateController::send_objects;
 
 std::map<std::string, std::vector<std::string>> MjStateController::receive_objects;
+ 
 
-bool should_shut_down = false;
+MjStateController::MjStateController()
+{
+	host = "tcp://127.0.0.1";
+	port = 7500;
+}
 
 MjStateController::~MjStateController()
 {
 }
 
-void MjStateController::init(const int port)
+void MjStateController::init(const std::string &in_host, const int in_port)
 {
+	host = in_host;
+	port = in_port;
+
 	XmlRpc::XmlRpcValue receive_object_params;
 	if (ros::param::get("~receive", receive_object_params))
 	{
@@ -387,7 +393,7 @@ void MjStateController::send_meta_data()
 
 		ROS_INFO("%s", meta_data_str.c_str());
 		
-		while (true)
+		while (ros::ok())
 		{
 			// Send JSON string over ZMQ
 			zmq_send(socket_client, meta_data_str.c_str(), meta_data_str.size(), 0);
@@ -488,17 +494,21 @@ void MjStateController::send_meta_data()
 					}
 					else if (joint_id != -1)
 					{
-						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE || m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
+						for (const std::string &attribute : send_object.second)
 						{
-							const int qpos_id = m->jnt_qposadr[joint_id];
-							d->qpos[qpos_id] = *buffer_addr++;
-						}
-						else if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
-						{
-							const int qpos_id = m->jnt_qposadr[joint_id];
-							d->qpos[qpos_id] = *buffer_addr++;
-							d->qpos[qpos_id + 1] = *buffer_addr++;
-							d->qpos[qpos_id + 2] = *buffer_addr++;
+							if ((strcmp(attribute.c_str(), "joint_rvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE) ||
+							 	(strcmp(attribute.c_str(), "joint_tvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE))
+							{
+								const int qpos_id = m->jnt_qposadr[joint_id];
+								d->qpos[qpos_id] = *buffer_addr++;
+							}
+							else if ((strcmp(attribute.c_str(), "joint_quaternion") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL))
+							{
+								const int qpos_id = m->jnt_qposadr[joint_id];
+								d->qpos[qpos_id] = *buffer_addr++;
+								d->qpos[qpos_id + 1] = *buffer_addr++;
+								d->qpos[qpos_id + 2] = *buffer_addr++;
+							}
 						}
 					}
 				}
@@ -552,7 +562,7 @@ void MjStateController::communicate()
 
 void MjStateController::deinit()
 {
-	ROS_INFO("Closing the socket client on %s", socket_addr.c_str());
+	std::cout << "Closing the socket client on " << socket_addr << std::endl;
 	if (is_enabled)
 	{
 		const std::string close_data = "{}";
@@ -564,9 +574,13 @@ void MjStateController::deinit()
 
 		zmq_disconnect(socket_client, socket_addr.c_str());
 	}
-	else if (send_meta_data_thread.joinable())
+	else
 	{
 		zmq_ctx_shutdown(context);
+	}
+
+	if (send_meta_data_thread.joinable())
+	{
 		send_meta_data_thread.join();
 	}
 }

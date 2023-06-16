@@ -197,8 +197,7 @@ int main(int argc, char **argv)
     ROS_INFO("Initialized OpenGL successfully.");
 #endif
 
-    MjStateController &mj_state_controller = MjStateController::get_instance();
-    mj_state_controller.init(port);
+    mj_state_controller.init("tcp://127.0.0.1", port);
 
     mjcb_control = controller;
 

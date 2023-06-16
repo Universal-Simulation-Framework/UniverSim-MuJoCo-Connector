@@ -43,7 +43,7 @@ public:
      * @brief Initialize the socket
      *
      */
-    void init(const int port);
+    void init(const std::string &in_host, const int port);
 
     /**
      * @brief Communicate with the server
@@ -61,6 +61,11 @@ public:
     static std::map<std::string, std::vector<std::string>> send_objects;
 
     static std::map<std::string, std::vector<std::string>> receive_objects;
+
+public:
+    std::string host;
+
+    int port;
 
 private:
     bool is_enabled = false;
@@ -91,7 +96,7 @@ private:
     void send_meta_data();
 
 private:
-    MjStateController() = default;
+    MjStateController();
 
     ~MjStateController();
 };

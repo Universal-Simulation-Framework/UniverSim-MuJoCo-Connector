@@ -1,10 +1,13 @@
 <launch>
 
     <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
+    <arg name="dummy" default="$(find mujoco_sim)/model/test/dummy.xml" />
     <arg name="world_1" default="$(find mujoco_sim)/model/test/table_with_bowling.xml" />
-    <arg name="world_2" default="$(find mujoco_sim)/model/test/bowling.xml" />
+    <arg name="world_2" default="$(find mujoco_sim)/model/test/table.xml" />
+    <arg name="world_3" default="$(find mujoco_sim)/model/test/bowling.xml" />
     <arg name="sim_1" default="$(find mujoco_sim)/test/config/force_1.yaml" />
     <arg name="sim_2" default="$(find mujoco_sim)/test/config/force_2.yaml" />
+    <arg name="sim_3" default="$(find mujoco_sim)/test/config/force_3.yaml" />
 
     <group ns="sim_1">
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
@@ -20,7 +23,16 @@
             args="7501">
             <rosparam command="load" file="$(arg sim_2)" />
             <param name="world" value="$(arg world_2)" />
-            <param name="robot" type="str" value="$(arg robot)" />
+            <param name="robot" type="str" value="$(arg dummy)" />
+        </node>
+    </group>
+
+    <group ns="sim_3">
+        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
+            args="7502">
+            <rosparam command="load" file="$(arg sim_3)" />
+            <param name="world" value="$(arg world_3)" />
+            <param name="robot" type="str" value="$(arg dummy)" />
         </node>
     </group>
 

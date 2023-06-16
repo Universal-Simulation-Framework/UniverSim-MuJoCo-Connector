@@ -5,4 +5,4 @@ send:
 receive:
   sphere: [position, quaternion]
   cylinder: [position, quaternion]
-  slider: [position, quaternion]
+  # slider: [position, quaternion]

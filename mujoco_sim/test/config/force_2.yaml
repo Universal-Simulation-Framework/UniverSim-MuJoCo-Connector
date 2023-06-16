@@ -1,5 +1,5 @@
 send:
-  bowling: [position, quaternion, relative_velocity]
+  table: [position, quaternion, relative_velocity]
 
 receive:
-  bowling: [force, torque]
+  table: [force, torque]

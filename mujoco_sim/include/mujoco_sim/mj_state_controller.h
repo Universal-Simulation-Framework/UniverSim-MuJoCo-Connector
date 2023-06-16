@@ -90,7 +90,7 @@ private:
 
     std::thread send_meta_data_thread;
 
-    std::map<std::string, std::vector<mjtNum>> contact_efforts;
+    std::map<int, mjtNum *> contact_efforts;
 
 private:
     void send_meta_data();

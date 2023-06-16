@@ -873,9 +873,7 @@ static void init_references()
 
 			if (ros::param::get("~receive/" + body_name, receive_attribute_names))
 			{
-				if (std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "position") != receive_attribute_names.end() &&
-					std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "quaternion") != receive_attribute_names.end() &&
-					std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "relative_velocity") != receive_attribute_names.end())
+				if (std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "relative_velocity") != receive_attribute_names.end())
 				{
 					if (body_id != -1)
 					{
@@ -967,7 +965,7 @@ static void init_references()
 
 				weld_element->SetAttribute("body1", body_name.c_str());
 				weld_element->SetAttribute("body2", ref_body_name.c_str());
-				weld_element->SetAttribute("torquescale", 0);
+				weld_element->SetAttribute("torquescale", 1.0);
 
 				for (int each_body_id = 0; each_body_id < m->nbody; each_body_id++)
 				{

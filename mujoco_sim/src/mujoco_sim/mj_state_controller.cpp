@@ -30,7 +30,6 @@
 std::map<std::string, std::vector<std::string>> MjStateController::send_objects;
 
 std::map<std::string, std::vector<std::string>> MjStateController::receive_objects;
- 
 
 MjStateController::MjStateController()
 {
@@ -126,24 +125,29 @@ void MjStateController::send_meta_data()
 				{
 					if (strcmp(attribute.c_str(), "position") == 0)
 					{
-						send_data_vec.push_back(&d->xpos[3 * body_id]);
-						send_data_vec.push_back(&d->xpos[3 * body_id + 1]);
-						send_data_vec.push_back(&d->xpos[3 * body_id + 2]);
+						send_data_vec.emplace_back(&d->xpos[3 * body_id]);
+						send_data_vec.emplace_back(&d->xpos[3 * body_id + 1]);
+						send_data_vec.emplace_back(&d->xpos[3 * body_id + 2]);
 					}
 					else if (strcmp(attribute.c_str(), "quaternion") == 0)
 					{
-						send_data_vec.push_back(&d->xquat[4 * body_id]);
-						send_data_vec.push_back(&d->xquat[4 * body_id + 1]);
-						send_data_vec.push_back(&d->xquat[4 * body_id + 2]);
-						send_data_vec.push_back(&d->xquat[4 * body_id + 3]);
+						send_data_vec.emplace_back(&d->xquat[4 * body_id]);
+						send_data_vec.emplace_back(&d->xquat[4 * body_id + 1]);
+						send_data_vec.emplace_back(&d->xquat[4 * body_id + 2]);
+						send_data_vec.emplace_back(&d->xquat[4 * body_id + 3]);
 					}
 					else if (strcmp(attribute.c_str(), "force") == 0)
 					{
 						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 						{
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id]);
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id + 1]);
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id + 2]);
+							if (contact_efforts.count(body_id) == 0)
+							{
+								contact_efforts[body_id] = (mjtNum *)calloc(6, sizeof(mjtNum));
+							}
+							
+							send_data_vec.emplace_back(&contact_efforts[body_id][0]);
+							send_data_vec.emplace_back(&contact_efforts[body_id][1]);
+							send_data_vec.emplace_back(&contact_efforts[body_id][2]);
 						}
 						else
 						{
@@ -154,9 +158,14 @@ void MjStateController::send_meta_data()
 					{
 						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 						{
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id + 3]);
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id + 4]);
-							send_data_vec.push_back(&d->qfrc_constraint[dof_id + 5]);
+							if (contact_efforts.count(body_id) == 0)
+							{
+								contact_efforts[body_id] = (mjtNum *)calloc(6, sizeof(mjtNum));
+							}
+
+							send_data_vec.emplace_back(&contact_efforts[body_id][3]);
+							send_data_vec.emplace_back(&contact_efforts[body_id][4]);
+							send_data_vec.emplace_back(&contact_efforts[body_id][5]);
 						}
 						else
 						{
@@ -167,12 +176,12 @@ void MjStateController::send_meta_data()
 					{
 						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 						{
-							send_data_vec.push_back(&d->qvel[dof_id]);
-							send_data_vec.push_back(&d->qvel[dof_id + 1]);
-							send_data_vec.push_back(&d->qvel[dof_id + 2]);
-							send_data_vec.push_back(&d->qvel[dof_id + 3]);
-							send_data_vec.push_back(&d->qvel[dof_id + 4]);
-							send_data_vec.push_back(&d->qvel[dof_id + 5]);
+							send_data_vec.emplace_back(&d->qvel[dof_id]);
+							send_data_vec.emplace_back(&d->qvel[dof_id + 1]);
+							send_data_vec.emplace_back(&d->qvel[dof_id + 2]);
+							send_data_vec.emplace_back(&d->qvel[dof_id + 3]);
+							send_data_vec.emplace_back(&d->qvel[dof_id + 4]);
+							send_data_vec.emplace_back(&d->qvel[dof_id + 5]);
 						}
 						else
 						{
@@ -192,7 +201,7 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
 						{
-							send_data_vec.push_back(&d->qpos[qpos_id]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id]);
 						}
 						else
 						{
@@ -203,7 +212,7 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
 						{
-							send_data_vec.push_back(&d->qpos[qpos_id]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id]);
 						}
 						else
 						{
@@ -218,10 +227,10 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
 						{
-							send_data_vec.push_back(&d->qpos[qpos_id]);
-							send_data_vec.push_back(&d->qpos[qpos_id + 1]);
-							send_data_vec.push_back(&d->qpos[qpos_id + 2]);
-							send_data_vec.push_back(&d->qpos[qpos_id + 3]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id + 1]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id + 2]);
+							send_data_vec.emplace_back(&d->qpos[qpos_id + 3]);
 						}
 						else
 						{
@@ -255,9 +264,9 @@ void MjStateController::send_meta_data()
 							if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 							{
 								int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-								receive_data_vec.push_back(&d->qpos[qpos_id]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 1]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 2]);
 							}
 							else
 							{
@@ -266,9 +275,9 @@ void MjStateController::send_meta_data()
 						}
 						else
 						{
-							receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id]);
-							receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 1]);
-							receive_data_vec.push_back(&d->mocap_pos[3 * mocap_id + 2]);
+							receive_data_vec.emplace_back(&d->mocap_pos[3 * mocap_id]);
+							receive_data_vec.emplace_back(&d->mocap_pos[3 * mocap_id + 1]);
+							receive_data_vec.emplace_back(&d->mocap_pos[3 * mocap_id + 2]);
 						}
 					}
 					else if (strcmp(attribute.c_str(), "quaternion") == 0)
@@ -278,18 +287,18 @@ void MjStateController::send_meta_data()
 							if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 							{
 								int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-								receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 4]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 5]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 6]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 3]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 4]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 5]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 6]);
 							}
 							else if (m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
 							{
 								int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-								receive_data_vec.push_back(&d->qpos[qpos_id]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
-								receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 1]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 2]);
+								receive_data_vec.emplace_back(&d->qpos[qpos_id + 3]);
 							}
 							else
 							{
@@ -298,34 +307,34 @@ void MjStateController::send_meta_data()
 						}
 						else
 						{
-							receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id]);
-							receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 1]);
-							receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 2]);
-							receive_data_vec.push_back(&d->mocap_quat[4 * mocap_id + 3]);
+							receive_data_vec.emplace_back(&d->mocap_quat[4 * mocap_id]);
+							receive_data_vec.emplace_back(&d->mocap_quat[4 * mocap_id + 1]);
+							receive_data_vec.emplace_back(&d->mocap_quat[4 * mocap_id + 2]);
+							receive_data_vec.emplace_back(&d->mocap_quat[4 * mocap_id + 3]);
 						}
 					}
 					else if (strcmp(attribute.c_str(), "force") == 0)
 					{
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 1]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 2]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id + 1]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id + 2]);
 					}
 					else if (strcmp(attribute.c_str(), "torque") == 0)
 					{
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 3]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 4]);
-						receive_data_vec.push_back(&d->qfrc_applied[dof_id + 5]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id + 3]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id + 4]);
+						receive_data_vec.emplace_back(&d->xfrc_applied[6 * body_id + 5]);
 					}
 					else if (strcmp(attribute.c_str(), "relative_velocity") == 0)
 					{
 						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 						{
-							receive_data_vec.push_back(&d->qvel[dof_id]);
-							receive_data_vec.push_back(&d->qvel[dof_id + 1]);
-							receive_data_vec.push_back(&d->qvel[dof_id + 2]);
-							receive_data_vec.push_back(&d->qvel[dof_id + 3]);
-							receive_data_vec.push_back(&d->qvel[dof_id + 4]);
-							receive_data_vec.push_back(&d->qvel[dof_id + 5]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id + 1]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id + 2]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id + 3]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id + 4]);
+							receive_data_vec.emplace_back(&d->qvel[dof_id + 5]);
 						}
 						else
 						{
@@ -349,10 +358,10 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL)
 						{
-							receive_data_vec.push_back(&d->qpos[qpos_id]);
-							receive_data_vec.push_back(&d->qpos[qpos_id + 1]);
-							receive_data_vec.push_back(&d->qpos[qpos_id + 2]);
-							receive_data_vec.push_back(&d->qpos[qpos_id + 3]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id + 1]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id + 2]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id + 3]);
 						}
 						else
 						{
@@ -363,7 +372,7 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
 						{
-							receive_data_vec.push_back(&d->qpos[qpos_id]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id]);
 						}
 						else
 						{
@@ -374,7 +383,7 @@ void MjStateController::send_meta_data()
 					{
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
 						{
-							receive_data_vec.push_back(&d->qpos[qpos_id]);
+							receive_data_vec.emplace_back(&d->qpos[qpos_id]);
 						}
 						else
 						{
@@ -433,62 +442,73 @@ void MjStateController::send_meta_data()
 				mtx.lock();
 
 				double *buffer_addr = buffer + 3;
-				
+
 				for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
 				{
 					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
 					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
-					if (body_id != -1 && m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
+					if (body_id != -1)
 					{
-						mjtNum xpos_desired[3] = {d->xpos[3 * body_id], d->xpos[3 * body_id + 1], d->xpos[3 * body_id + 2]};
-						mjtNum xquat_desired[4] = {d->xquat[4 * body_id], d->xquat[4 * body_id + 1], d->xquat[4 * body_id + 2], d->xquat[4 * body_id + 3]};
-
-						for (const std::string &attribute : send_object.second)
+						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 						{
-							if (strcmp(attribute.c_str(), "position") == 0)
+							mjtNum *xpos_desired = d->xpos + 3 * body_id;
+							mjtNum *xquat_desired = d->xquat + 4 * body_id;
+
+							for (const std::string &attribute : send_object.second)
 							{
-								xpos_desired[0] = *buffer_addr++;
-								xpos_desired[1] = *buffer_addr++;
-								xpos_desired[2] = *buffer_addr++;
+								if (strcmp(attribute.c_str(), "position") == 0)
+								{
+									xpos_desired[0] = *buffer_addr++;
+									xpos_desired[1] = *buffer_addr++;
+									xpos_desired[2] = *buffer_addr++;
+									ROS_WARN("%s - [%f %f %f]", send_object.first.c_str(), xpos_desired[0], xpos_desired[1], xpos_desired[2]);
+								}
+								else if (strcmp(attribute.c_str(), "quaternion") == 0)
+								{
+									xquat_desired[0] = *buffer_addr++;
+									xquat_desired[1] = *buffer_addr++;
+									xquat_desired[2] = *buffer_addr++;
+									xquat_desired[2] = *buffer_addr++;
+								}
 							}
-							else if (strcmp(attribute.c_str(), "quaternion") == 0)
+
+							const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+							d->qpos[qpos_id] = xpos_desired[0];
+							d->qpos[qpos_id + 1] = xpos_desired[1];
+							d->qpos[qpos_id + 2] = xpos_desired[2];
+							d->qpos[qpos_id + 3] = xquat_desired[0];
+							d->qpos[qpos_id + 4] = xquat_desired[1];
+							d->qpos[qpos_id + 5] = xquat_desired[2];
+							d->qpos[qpos_id + 6] = xquat_desired[3];
+						}
+						else if (m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
+						{
+							for (const std::string &attribute : send_object.second)
 							{
-								xquat_desired[0] = *buffer_addr++;
-								xquat_desired[1] = *buffer_addr++;
-								xquat_desired[2] = *buffer_addr++;
-								xquat_desired[2] = *buffer_addr++;
+								if (strcmp(attribute.c_str(), "position") == 0)
+								{
+									buffer_addr += 3;
+								}
+								else if (strcmp(attribute.c_str(), "quaternion") == 0)
+								{
+									const mjtNum xquat_desired[4] = {*buffer_addr++, *buffer_addr++, *buffer_addr++, *buffer_addr++};
+									mjtNum *xquat_current_neg = d->xquat + 4 * body_id;
+									mju_negQuat(xquat_current_neg, xquat_current_neg);
+
+									const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+									mju_mulQuat(d->qpos + qpos_id, xquat_current_neg, xquat_desired);
+								}
 							}
 						}
-
-						const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-						d->qpos[qpos_id] = xpos_desired[0];
-						d->qpos[qpos_id + 1] = xpos_desired[1];
-						d->qpos[qpos_id + 2] = xpos_desired[2];
-						d->qpos[qpos_id + 3] = xquat_desired[0];
-						d->qpos[qpos_id + 4] = xquat_desired[1];
-						d->qpos[qpos_id + 5] = xquat_desired[2];
-						d->qpos[qpos_id + 6] = xquat_desired[3];
-					}
-					else if (body_id != -1 && m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
-					{
 						for (const std::string &attribute : send_object.second)
 						{
-							if (strcmp(attribute.c_str(), "position") == 0)
+							if (strcmp(attribute.c_str(), "force") == 0)
 							{
 								buffer_addr += 3;
 							}
-							else if (strcmp(attribute.c_str(), "quaternion") == 0)
+							else if (strcmp(attribute.c_str(), "torque") == 0)
 							{
-								const mjtNum xquat_desired[4] = {*buffer_addr++, *buffer_addr++, *buffer_addr++, *buffer_addr++};
-								mjtNum xquat_current_neg[4] = {d->xquat[4 * body_id], d->xquat[4 * body_id + 1], d->xquat[4 * body_id + 2], d->xquat[4 * body_id + 3]};
-								mju_negQuat(xquat_current_neg, xquat_current_neg);
-								mjtNum qpos[4] = {1.0, 0.0, 0.0, 0.0};
-								mju_mulQuat(qpos, xquat_current_neg, xquat_desired);
-								const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-								d->qpos[qpos_id] = qpos[0];
-								d->qpos[qpos_id + 1] = qpos[1];
-								d->qpos[qpos_id + 2] = qpos[2];
-								d->qpos[qpos_id + 3] = qpos[3];
+								buffer_addr += 3;
 							}
 						}
 					}
@@ -501,6 +521,10 @@ void MjStateController::send_meta_data()
 							{
 								const int qpos_id = m->jnt_qposadr[joint_id];
 								d->qpos[qpos_id] = *buffer_addr++;
+							}
+							else if ((strcmp(attribute.c_str(), "joint_position") == 0))
+							{
+								buffer_addr += 3;
 							}
 							else if ((strcmp(attribute.c_str(), "joint_quaternion") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL))
 							{
@@ -530,6 +554,13 @@ void MjStateController::communicate()
 {
 	if (is_enabled)
 	{
+		for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
+		{
+			mjtNum jac[6 * m->nv];
+			mj_jacBodyCom(m, d, jac, jac + 3 * m->nv, contact_effort.first);
+			mju_mulMatVec(contact_effort.second, jac, d->qfrc_constraint, 6, m->nv);
+		}
+
 		*send_buffer = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
 		for (size_t i = 0; i < send_buffer_size - 1; i++)
@@ -571,6 +602,11 @@ void MjStateController::deinit()
 
 		free(send_buffer);
 		free(receive_buffer);
+
+		for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
+		{
+			free(contact_effort.second);
+		}
 
 		zmq_disconnect(socket_client, socket_addr.c_str());
 	}

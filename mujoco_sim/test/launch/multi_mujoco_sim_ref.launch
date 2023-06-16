@@ -1,10 +1,10 @@
 <launch>
 
     <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
-    <arg name="world" default="$(find mujoco_sim)/model/test/pendulum.xml" />
-    <arg name="sim_1" default="$(find mujoco_sim)/src/config/sim_1.yaml" />
-    <arg name="sim_2" default="$(find mujoco_sim)/src/config/sim_2.yaml" />
-    <arg name="sim_3" default="$(find mujoco_sim)/src/config/sim_3.yaml" />
+    <arg name="world" default="$(find mujoco_sim)/model/test/pendulums.xml" />
+    <arg name="sim_1" default="$(find mujoco_sim)/test/config/ref_1.yaml" />
+    <arg name="sim_2" default="$(find mujoco_sim)/test/config/ref_2.yaml" />
+    <arg name="sim_3" default="$(find mujoco_sim)/test/config/ref_3.yaml" />
 
     <group ns="sim_1">
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"

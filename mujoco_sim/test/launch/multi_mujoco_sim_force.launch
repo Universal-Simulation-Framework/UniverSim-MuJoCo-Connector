@@ -3,8 +3,8 @@
     <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
     <arg name="world_1" default="$(find mujoco_sim)/model/test/table_with_bowling.xml" />
     <arg name="world_2" default="$(find mujoco_sim)/model/test/bowling.xml" />
-    <arg name="sim_1" default="$(find mujoco_sim)/src/config/sim_1_force.yaml" />
-    <arg name="sim_2" default="$(find mujoco_sim)/src/config/sim_2_force.yaml" />
+    <arg name="sim_1" default="$(find mujoco_sim)/test/config/force_1.yaml" />
+    <arg name="sim_2" default="$(find mujoco_sim)/test/config/force_2.yaml" />
 
     <group ns="sim_1">
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"

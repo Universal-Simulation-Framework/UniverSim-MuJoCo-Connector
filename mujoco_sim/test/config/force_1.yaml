@@ -3,6 +3,6 @@ send:
   bowling: [force, torque]
 
 receive:
-  # cube: [position, quaternion]
+  cube: [position, quaternion]
   bowling: [position, quaternion, relative_velocity]
   table: [position, quaternion, relative_velocity]

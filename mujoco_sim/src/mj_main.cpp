@@ -24,13 +24,13 @@
 #endif
 #include "mj_hw_interface.h"
 #include "mj_ros.h"
-#include "mj_state_controller.h"
+#include "mj_multiverse_client.h"
 
 #include <controller_manager/controller_manager.h>
 #include <thread>
 
 static MjSim &mj_sim = MjSim::get_instance();
-static MjStateController &mj_state_controller = MjStateController::get_instance();
+static MjMultiverseClient &mj_multiverse_client = MjMultiverseClient::get_instance();
 #ifdef VISUAL
 static MjVisual &mj_visual = MjVisual::get_instance();
 #endif
@@ -77,7 +77,7 @@ void simulate()
 
     while (ros::ok())
     {
-        mj_state_controller.communicate();
+        mj_multiverse_client.communicate();
         {
             ros::Time sim_time = (ros::Time)(MjRos::ros_start.toSec() + d->time);
             ros::Duration sim_period = sim_time - last_sim_time;
@@ -165,7 +165,7 @@ void simulate()
             }
         }
     }
-    mj_state_controller.deinit();
+    mj_multiverse_client.deinit();
 }
 
 int main(int argc, char **argv)
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     ROS_INFO("Initialized OpenGL successfully.");
 #endif
 
-    mj_state_controller.init("tcp://127.0.0.1", port);
+    mj_multiverse_client.init("tcp://127.0.0.1", port);
 
     mjcb_control = controller;
 

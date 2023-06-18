@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mj_state_controller.h"
+#include "mj_multiverse_client.h"
 
 #include <chrono>
 #include <csignal>
@@ -27,21 +27,21 @@
 #include <ros/ros.h>
 #include <zmq.hpp>
 
-std::map<std::string, std::vector<std::string>> MjStateController::send_objects;
+std::map<std::string, std::vector<std::string>> MjMultiverseClient::send_objects;
 
-std::map<std::string, std::vector<std::string>> MjStateController::receive_objects;
+std::map<std::string, std::vector<std::string>> MjMultiverseClient::receive_objects;
 
-MjStateController::MjStateController()
+MjMultiverseClient::MjMultiverseClient()
 {
 	host = "tcp://127.0.0.1";
 	port = 7500;
 }
 
-MjStateController::~MjStateController()
+MjMultiverseClient::~MjMultiverseClient()
 {
 }
 
-void MjStateController::init(const std::string &in_host, const int in_port)
+void MjMultiverseClient::init(const std::string &in_host, const int in_port)
 {
 	host = in_host;
 	port = in_port;
@@ -92,7 +92,7 @@ void MjStateController::init(const std::string &in_host, const int in_port)
 	}
 }
 
-void MjStateController::send_meta_data()
+void MjMultiverseClient::send_meta_data()
 {
 	zmq_disconnect(socket_client, socket_addr.c_str());
 	zmq_connect(socket_client, socket_addr.c_str());
@@ -550,7 +550,7 @@ void MjStateController::send_meta_data()
 		free(buffer); });
 }
 
-void MjStateController::communicate()
+void MjMultiverseClient::communicate()
 {
 	if (is_enabled)
 	{
@@ -591,7 +591,7 @@ void MjStateController::communicate()
 	}
 }
 
-void MjStateController::deinit()
+void MjMultiverseClient::deinit()
 {
 	std::cout << "Closing the socket client on " << socket_addr << std::endl;
 	if (is_enabled)

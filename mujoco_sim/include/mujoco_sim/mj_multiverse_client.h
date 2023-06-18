@@ -25,16 +25,16 @@
 #include <set>
 #include <thread>
 
-class MjStateController
+class MjMultiverseClient
 {
 public:
-    MjStateController(const MjStateController &) = delete;
+    MjMultiverseClient(const MjMultiverseClient &) = delete;
 
-    void operator=(MjStateController const &) = delete;
+    void operator=(MjMultiverseClient const &) = delete;
 
-    static MjStateController &get_instance()
+    static MjMultiverseClient &get_instance()
     {
-        static MjStateController mj_state_controller;
+        static MjMultiverseClient mj_state_controller;
         return mj_state_controller;
     }
 
@@ -96,7 +96,7 @@ private:
     void send_meta_data();
 
 private:
-    MjStateController();
+    MjMultiverseClient();
 
-    ~MjStateController();
+    ~MjMultiverseClient();
 };

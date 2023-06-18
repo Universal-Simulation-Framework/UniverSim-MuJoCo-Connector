@@ -1,4 +1,4 @@
-# mujoco_sim
+# Multiverse-MuJoCo-Connector
 ROS interface for MuJoCo simulator
 
 ## Overview

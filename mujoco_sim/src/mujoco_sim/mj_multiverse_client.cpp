@@ -617,6 +617,7 @@ void MjMultiverseClient::deinit()
 
 	if (send_meta_data_thread.joinable())
 	{
+		zmq_ctx_shutdown(context);
 		send_meta_data_thread.join();
 	}
 }

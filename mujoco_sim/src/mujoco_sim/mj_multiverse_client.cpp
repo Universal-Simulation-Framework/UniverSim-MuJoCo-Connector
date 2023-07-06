@@ -20,16 +20,66 @@
 
 #include "mj_multiverse_client.h"
 
+#include "mj_util.h"
 #include <chrono>
 #include <csignal>
 #include <iostream>
 #include <jsoncpp/json/json.h>
 #include <ros/ros.h>
+#include <tinyxml2.h>
 #include <zmq.hpp>
 
 std::map<std::string, std::vector<std::string>> MjMultiverseClient::send_objects;
 
 std::map<std::string, std::vector<std::string>> MjMultiverseClient::receive_objects;
+
+static void modify_attributes(std::map<std::string, std::vector<std::string>> &objects)
+{
+	tinyxml2::XMLDocument doc;
+	if (!load_XML(doc, model_path.c_str()))
+	{
+		ROS_WARN("Failed to load file \"%s\"\n", model_path.c_str());
+		return;
+	}
+
+	do_each_child_element(doc.FirstChildElement(), "worldbody", [&](tinyxml2::XMLElement *worldbody_element)
+						  { do_each_child_element(worldbody_element, [&](tinyxml2::XMLElement *body_element)
+												  {
+			int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_element->Attribute("name"));
+			if (body_id == -1)
+			{
+				return;
+			}
+
+			std::vector<std::string> &attributes = objects[body_element->Attribute("name")];
+			for (const std::string &attribute : attributes)
+			{
+				if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue"))
+				{
+					do_each_child_element(body_element, "joint", [&](tinyxml2::XMLElement *joint_element)
+					{
+						const int joint_id = mj_name2id(m, mjOBJ_JOINT, joint_element->Attribute("name"));
+						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE && strcmp(attribute.c_str(), "joint_rvalue") == 0)
+						{
+							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].push_back("joint_rvalue");
+						}
+						else if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE && strcmp(attribute.c_str(), "joint_tvalue") == 0)
+						{
+							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].push_back("joint_tvalue");
+						}
+
+					});
+				}
+			}
+
+			attributes.erase(std::remove(attributes.begin(), attributes.end(), "joint_rvalue"), attributes.end());
+			attributes.erase(std::remove(attributes.begin(), attributes.end(), "joint_tvalue"), attributes.end());
+
+			if (attributes.size() == 0)
+			{
+				objects.erase(body_element->Attribute("name"));
+			} }); });
+}
 
 MjMultiverseClient::MjMultiverseClient()
 {
@@ -112,6 +162,10 @@ void MjMultiverseClient::send_meta_data()
 		meta_data_json["handedness"] = "rhs";
 
 		mtx.lock();
+
+		modify_attributes(send_objects);
+		modify_attributes(receive_objects);
+
 		for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
 		{
 			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());

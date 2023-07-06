@@ -40,10 +40,16 @@ public:
 
 public:
     /**
-     * @brief Initialize the socket
+     * @brief Initialize the socket with host and port
      *
      */
-    void init(const std::string &in_host, const int port);
+    void init(const std::string &in_host, const int in_port);
+
+    /**
+     * @brief Initialize the socket
+     * 
+     */
+    void init();
 
     /**
      * @brief Communicate with the server
@@ -58,9 +64,9 @@ public:
     void deinit();
 
 public:
-    static std::map<std::string, std::vector<std::string>> send_objects;
+    static std::map<std::string, std::set<std::string>> send_objects;
 
-    static std::map<std::string, std::vector<std::string>> receive_objects;
+    static std::map<std::string, std::set<std::string>> receive_objects;
 
 public:
     std::string host;

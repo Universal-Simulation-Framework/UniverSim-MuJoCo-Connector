@@ -21,6 +21,7 @@
 #include "mj_ros.h"
 
 #include "mj_util.h"
+#include "mj_multiverse_client.h"
 
 #include <condition_variable>
 #include <controller_manager_msgs/ControllerState.h>
@@ -76,6 +77,8 @@ static bool pub_object_state_array_of_free_bodies_only;
 static std::map<mjtObj, std::map<std::string, std::string>> name_map;
 
 static std::map<mjtObj, int> unique_index = {{mjtObj::mjOBJ_MESH, 0}, {mjtObj::mjOBJ_BODY, 0}, {mjtObj::mjOBJ_JOINT, 0}, {mjtObj::mjOBJ_GEOM, 0}};
+
+static MjMultiverseClient &mj_multiverse_client = MjMultiverseClient::get_instance();
 
 static bool init_urdf(urdf::Model &urdf_model, const ros::NodeHandle &n, const char *robot_description = "robot_description")
 {
@@ -848,6 +851,9 @@ bool MjRos::reset_robot_service(std_srvs::TriggerRequest &req, std_srvs::Trigger
             ROS_WARN("Failed to call switch_controller");
         }
     }
+
+    mj_multiverse_client.deinit();
+    mj_multiverse_client.init();
     return true;
 }
 

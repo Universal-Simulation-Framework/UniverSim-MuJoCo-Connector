@@ -29,11 +29,11 @@
 #include <tinyxml2.h>
 #include <zmq.hpp>
 
-std::map<std::string, std::vector<std::string>> MjMultiverseClient::send_objects;
+std::map<std::string, std::set<std::string>> MjMultiverseClient::send_objects;
 
-std::map<std::string, std::vector<std::string>> MjMultiverseClient::receive_objects;
+std::map<std::string, std::set<std::string>> MjMultiverseClient::receive_objects;
 
-static void modify_attributes(std::map<std::string, std::vector<std::string>> &objects)
+static void modify_attributes(std::map<std::string, std::set<std::string>> &objects)
 {
 	tinyxml2::XMLDocument doc;
 	if (!load_XML(doc, model_path.c_str()))
@@ -51,7 +51,7 @@ static void modify_attributes(std::map<std::string, std::vector<std::string>> &o
 				return;
 			}
 
-			std::vector<std::string> &attributes = objects[body_element->Attribute("name")];
+			std::set<std::string> &attributes = objects[body_element->Attribute("name")];
 			for (const std::string &attribute : attributes)
 			{
 				if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue"))
@@ -61,19 +61,19 @@ static void modify_attributes(std::map<std::string, std::vector<std::string>> &o
 						const int joint_id = mj_name2id(m, mjOBJ_JOINT, joint_element->Attribute("name"));
 						if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE && strcmp(attribute.c_str(), "joint_rvalue") == 0)
 						{
-							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].push_back("joint_rvalue");
+							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].insert("joint_rvalue");
 						}
 						else if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE && strcmp(attribute.c_str(), "joint_tvalue") == 0)
 						{
-							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].push_back("joint_tvalue");
+							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].insert("joint_tvalue");
 						}
 
 					});
 				}
 			}
 
-			attributes.erase(std::remove(attributes.begin(), attributes.end(), "joint_rvalue"), attributes.end());
-			attributes.erase(std::remove(attributes.begin(), attributes.end(), "joint_tvalue"), attributes.end());
+			attributes.erase("joint_rvalue");
+			attributes.erase("joint_tvalue");
 
 			if (attributes.size() == 0)
 			{
@@ -96,6 +96,11 @@ void MjMultiverseClient::init(const std::string &in_host, const int in_port)
 	host = in_host;
 	port = in_port;
 
+	init();
+}
+
+void MjMultiverseClient::init()
+{
 	XmlRpc::XmlRpcValue receive_object_params;
 	if (ros::param::get("~receive", receive_object_params))
 	{
@@ -104,7 +109,12 @@ void MjMultiverseClient::init(const std::string &in_host, const int in_port)
 		{
 			log += receive_object_param.first + " ";
 			receive_objects[receive_object_param.first] = {};
-			ros::param::get("~receive/" + receive_object_param.first, receive_objects[receive_object_param.first]);
+			std::vector<std::string> receive_attributes;
+			ros::param::get("~receive/" + receive_object_param.first, receive_attributes);
+			for (const std::string &attribute : receive_attributes)
+			{
+				receive_objects[receive_object_param.first].insert(attribute);
+			}
 		}
 		ROS_INFO("%s", log.c_str());
 	}
@@ -123,7 +133,10 @@ void MjMultiverseClient::init(const std::string &in_host, const int in_port)
 				if (body_id != -1 || joint_id != -1)
 				{
 					log += send_object_param.first + " ";
-					send_objects[send_object_param.first] = send_data;
+					for (const std::string &attribute : send_data)
+					{
+						send_objects[send_object_param.first].insert(attribute);
+					}
 				}
 			}
 		}
@@ -166,7 +179,7 @@ void MjMultiverseClient::send_meta_data()
 		modify_attributes(send_objects);
 		modify_attributes(receive_objects);
 
-		for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
+		for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
 		{
 			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
 			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
@@ -299,7 +312,7 @@ void MjMultiverseClient::send_meta_data()
 		send_buffer_size = 1 + send_data_vec.size();
 
 		mtx.lock();
-		for (const std::pair<std::string, std::vector<std::string>> &receive_object : receive_objects)
+		for (const std::pair<std::string, std::set<std::string>> &receive_object : receive_objects)
 		{
 			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, receive_object.first.c_str());
 			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, receive_object.first.c_str());
@@ -497,7 +510,7 @@ void MjMultiverseClient::send_meta_data()
 
 				double *buffer_addr = buffer + 3;
 
-				for (const std::pair<std::string, std::vector<std::string>> &send_object : send_objects)
+				for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
 				{
 					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
 					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());

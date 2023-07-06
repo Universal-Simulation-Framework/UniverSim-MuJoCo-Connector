@@ -54,7 +54,7 @@ static void modify_attributes(std::map<std::string, std::set<std::string>> &obje
 			std::set<std::string> &attributes = objects[body_element->Attribute("name")];
 			for (const std::string &attribute : attributes)
 			{
-				if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue"))
+				if (strcmp(attribute.c_str(), "joint_rvalue") == 0 || strcmp(attribute.c_str(), "joint_tvalue") == 0)
 				{
 					do_each_child_element(body_element, "joint", [&](tinyxml2::XMLElement *joint_element)
 					{
@@ -67,7 +67,6 @@ static void modify_attributes(std::map<std::string, std::set<std::string>> &obje
 						{
 							objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].insert("joint_tvalue");
 						}
-
 					});
 				}
 			}

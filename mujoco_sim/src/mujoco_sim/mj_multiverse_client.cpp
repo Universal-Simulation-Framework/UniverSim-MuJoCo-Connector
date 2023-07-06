@@ -675,6 +675,8 @@ void MjMultiverseClient::deinit()
 		}
 
 		zmq_disconnect(socket_client, socket_addr.c_str());
+
+		is_enabled = false;
 	}
 	else
 	{

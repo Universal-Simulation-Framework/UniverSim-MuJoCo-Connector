@@ -101,69 +101,40 @@ void MjMultiverseClient::init(const std::string &in_host, const int in_port)
 void MjMultiverseClient::init()
 {
 	XmlRpc::XmlRpcValue receive_object_params;
-	if (ros::param::get("~receive", receive_object_params) && receive_object_params.getType() == XmlRpc::XmlRpcValue::TypeArray)
+	if (ros::param::get("~receive", receive_object_params))
 	{
 		std::string log = "Set receive_objects: ";
-		for (int i = 0; i < receive_object_params.size(); i++)
+		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_object_param : receive_object_params)
 		{
-			const XmlRpc::XmlRpcValue receive_object_param = receive_object_params[i];
-			const XmlRpc::XmlRpcValue receive_object_names = receive_object_params["objects"];
-			const XmlRpc::XmlRpcValue receive_attribute_names = receive_object_params["attributes"];
-			for (int j = 0; j < receive_object_names.size(); j++)
+			log += receive_object_param.first + " ";
+			receive_objects[receive_object_param.first] = {};
+			std::vector<std::string> receive_attributes;
+			ros::param::get("~receive/" + receive_object_param.first, receive_attributes);
+			for (const std::string &attribute : receive_attributes)
 			{
-				const std::string object_name = receive_object_names[j];
-				log += object_name + " ";
-				receive_objects[object_name] = {};
-				for (int k = 0; k < receive_attribute_names.size(); k++)
-				{
-					receive_objects[object_name].insert(receive_attribute_names[k]);
-				}
+				receive_objects[receive_object_param.first].insert(attribute);
 			}
 		}
 		ROS_INFO("%s", log.c_str());
 	}
 
 	XmlRpc::XmlRpcValue send_object_params;
-	if (ros::param::get("~send", send_object_params) && send_object_params.getType() == XmlRpc::XmlRpcValue::TypeArray)
+	if (ros::param::get("~send", send_object_params))
 	{
 		std::string log = "Set send_objects: ";
-		for (int i = 0; i < send_object_params.size(); i++)
+		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &send_object_param : send_object_params)
 		{
-			const XmlRpc::XmlRpcValue send_object_param = send_object_params[i];
-			const XmlRpc::XmlRpcValue send_object_names = send_object_param["objects"];
-			const XmlRpc::XmlRpcValue send_attribute_names = send_object_param["attributes"];
-			for (int j = 0; j < send_object_names.size(); j++)
+			std::vector<std::string> send_data;
+			if (ros::param::get("~send/" + send_object_param.first, send_data))
 			{
-				const std::string object_name = send_object_names[j];
-				if (object_name.empty())
+				const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object_param.first.c_str());
+				const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object_param.first.c_str());
+				if (body_id != -1 || joint_id != -1)
 				{
-					for (int k = 0; k < send_attribute_names.size(); k++)
+					log += send_object_param.first + " ";
+					for (const std::string &attribute : send_data)
 					{
-						const std::string attribute_name = send_attribute_names[k];
-						if (strcmp(attribute_name.c_str(), "position") == 0 ||
-							strcmp(attribute_name.c_str(), "quaternion") == 0 ||
-							strcmp(attribute_name.c_str(), "relative_velocity") == 0 ||
-							strcmp(attribute_name.c_str(), "force") == 0 ||
-							strcmp(attribute_name.c_str(), "torque") == 0)
-						{
-							for (int body_id = 0; body_id < m->nbody; body_id++)
-							{
-								send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, body_id)].insert(attribute_name);
-							}
-						}
-					}
-				}
-				else
-				{
-					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, object_name.c_str());
-					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, object_name.c_str());
-					if (body_id != -1 || joint_id != -1)
-					{
-						log += object_name + " ";
-						for (int k = 0; k < send_attribute_names.size(); k++)
-						{
-							send_objects[object_name].insert(send_attribute_names[k]);
-						}
+						send_objects[send_object_param.first].insert(attribute);
 					}
 				}
 			}

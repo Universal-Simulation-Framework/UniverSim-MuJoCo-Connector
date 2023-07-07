@@ -127,14 +127,60 @@ void MjMultiverseClient::init()
 			std::vector<std::string> send_data;
 			if (ros::param::get("~send/" + send_object_param.first, send_data))
 			{
-				const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object_param.first.c_str());
-				const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object_param.first.c_str());
-				if (body_id != -1 || joint_id != -1)
+				if (strcmp(send_object_param.first.c_str(), "body") == 0)
 				{
-					log += send_object_param.first + " ";
 					for (const std::string &attribute : send_data)
 					{
-						send_objects[send_object_param.first].insert(attribute);
+						if (strcmp(attribute.c_str(), "position") == 0 ||
+							strcmp(attribute.c_str(), "quaternion") == 0 ||
+							strcmp(attribute.c_str(), "relative_velocity") == 0 ||
+							strcmp(attribute.c_str(), "force") == 0 ||
+							strcmp(attribute.c_str(), "torque") == 0)
+						{
+							for (int body_id = 0; body_id < m->nbody; body_id++)
+							{
+								send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, body_id)].insert(attribute);
+							}
+						}
+					}
+				}
+				else if (strcmp(send_object_param.first.c_str(), "joint") == 0)
+				{
+					for (const std::string &attribute : send_data)
+					{
+						if (strcmp(attribute.c_str(), "joint_rvalue") == 0)
+						{
+							for (int joint_id = 0; joint_id < m->njnt; joint_id++)
+							{
+								if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
+								{
+									send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, joint_id)].insert(attribute);
+								}
+							}
+						}
+						else if (strcmp(attribute.c_str(), "joint_tvalue") == 0)
+						{
+							for (int joint_id = 0; joint_id < m->njnt; joint_id++)
+							{
+								if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
+								{
+									send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, joint_id)].insert(attribute);
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object_param.first.c_str());
+					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object_param.first.c_str());
+					if (body_id != -1 || joint_id != -1)
+					{
+						log += send_object_param.first + " ";
+						for (const std::string &attribute : send_data)
+						{
+							send_objects[send_object_param.first].insert(attribute);
+						}
 					}
 				}
 			}

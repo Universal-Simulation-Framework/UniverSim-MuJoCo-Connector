@@ -463,101 +463,133 @@ void MjMultiverseClient::send_meta_data()
 		mtx.unlock();
 		receive_buffer_size = 1 + receive_data_vec.size();
 
-		double *buffer = (double *)calloc(send_buffer_size + 2, sizeof(double));
+		// double *buffer = (double *)calloc(send_buffer_size + 2, sizeof(double));
+		zmq_msg_t response_message;
+		zmq_msg_init(&response_message);
 		const std::string meta_data_str = meta_data_json.toStyledString();
 
 		ROS_INFO("%s", meta_data_str.c_str());
+
+		std::map<std::string, size_t> response_buffer_sizes = {{"send", 1}, {"receive", 1}};
 		
+		Json::Value response_json;
 		while (ros::ok())
 		{
 			// Send JSON string over ZMQ
 			zmq_send(socket_client, meta_data_str.c_str(), meta_data_str.size(), 0);
+			
+			// Receive response over ZMQ
+			zmq_msg_recv(&response_message, socket_client, 0);
+			Json::Reader reader;
+			std::string response_message_str(static_cast<char*>(zmq_msg_data(&response_message)), zmq_msg_size(&response_message));
+        	reader.parse(response_message_str, response_json);
 
-			// Receive buffer sizes and send_data (if exists) over ZMQ
-			zmq_recv(socket_client, buffer, (send_buffer_size + 2) * sizeof(double), 0);
-			if (*buffer < 0)
+			if (response_json["time"] < 0)
 			{
-				free(buffer);
-				buffer = (double *)calloc(send_buffer_size + 2, sizeof(double));
+				zmq_msg_init(&response_message);
 				ROS_WARN("The socket server at %s has been terminated, resend the message", socket_addr.c_str());
 				zmq_disconnect(socket_client, socket_addr.c_str());
 				zmq_connect(socket_client, socket_addr.c_str());
 			}
 			else
 			{
+				for (std::pair<const std::string, size_t> &response_buffer_size : response_buffer_sizes)
+				{
+					const Json::Value json_object = response_json[response_buffer_size.first];
+					for (auto object_it = json_object.begin(); object_it != json_object.end(); ++object_it)
+					{
+						const std::string object_name = object_it.key().asString();
+						const Json::Value json_object_data = json_object[object_name];
+						for (auto object_data_it = json_object_data.begin(); object_data_it != json_object_data.end(); ++object_data_it)
+						{
+							const std::string attribute_name = object_data_it.key().asString();
+							response_buffer_size.second += json_object_data[attribute_name].size();
+						}
+					}
+				}
+				
 				break;
 			}
 		}
 
-		size_t recv_buffer_size[2] = {(size_t)buffer[0], (size_t)buffer[1]};
-		if (recv_buffer_size[0] != send_buffer_size || recv_buffer_size[1] != receive_buffer_size)
+		if (response_buffer_sizes["send"] != send_buffer_size || response_buffer_sizes["receive"] != receive_buffer_size)
 		{
 			ROS_ERROR("Failed to initialize the socket at %s: send_buffer_size(server = %ld, client = %ld), receive_buffer_size(server = %ld, client = %ld).", 
 				socket_addr.c_str(), 
-				recv_buffer_size[0], 
+				response_buffer_sizes["send"], 
 				send_buffer_size, 
-				recv_buffer_size[1], 
+				response_buffer_sizes["receive"], 
 				receive_buffer_size);
 			zmq_disconnect(socket_client, socket_addr.c_str());
 		}
 		else
 		{
-			if (buffer[2] < 0.0)
+			mtx.lock();
+
+			for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
 			{
-				ROS_INFO("Continue state on socket %s", socket_addr.c_str());
-				mtx.lock();
-
-				double *buffer_addr = buffer + 3;
-
-				for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
+				const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
+				const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
+				if (body_id != -1)
 				{
-					const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, send_object.first.c_str());
-					const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, send_object.first.c_str());
-					if (body_id != -1)
+					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 					{
-						if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
-						{
-							mjtNum *xpos_desired = d->xpos + 3 * body_id;
-							mjtNum *xquat_desired = d->xquat + 4 * body_id;
+						mjtNum *xpos_desired = d->xpos + 3 * body_id;
+						mjtNum *xquat_desired = d->xquat + 4 * body_id;
 
-							for (const std::string &attribute : send_object.second)
+						for (const std::string &attribute : send_object.second)
+						{
+							if (strcmp(attribute.c_str(), "position") == 0)
 							{
-								if (strcmp(attribute.c_str(), "position") == 0)
+								const double x = response_json["send"][send_object.first][attribute][0].asDouble();
+								const double y = response_json["send"][send_object.first][attribute][1].asDouble();
+								const double z = response_json["send"][send_object.first][attribute][2].asDouble();
+								if (std::isnan(x) && std::isnan(y) && std::isnan(z))
 								{
-									xpos_desired[0] = *buffer_addr++;
-									xpos_desired[1] = *buffer_addr++;
-									xpos_desired[2] = *buffer_addr++;
-									ROS_WARN("%s - [%f %f %f]", send_object.first.c_str(), xpos_desired[0], xpos_desired[1], xpos_desired[2]);
-								}
-								else if (strcmp(attribute.c_str(), "quaternion") == 0)
-								{
-									xquat_desired[0] = *buffer_addr++;
-									xquat_desired[1] = *buffer_addr++;
-									xquat_desired[2] = *buffer_addr++;
-									xquat_desired[2] = *buffer_addr++;
+									xpos_desired[0] = x;
+									xpos_desired[1] = y;
+									xpos_desired[2] = z;
 								}
 							}
-
-							const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
-							d->qpos[qpos_id] = xpos_desired[0];
-							d->qpos[qpos_id + 1] = xpos_desired[1];
-							d->qpos[qpos_id + 2] = xpos_desired[2];
-							d->qpos[qpos_id + 3] = xquat_desired[0];
-							d->qpos[qpos_id + 4] = xquat_desired[1];
-							d->qpos[qpos_id + 5] = xquat_desired[2];
-							d->qpos[qpos_id + 6] = xquat_desired[3];
-						}
-						else if (m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
-						{
-							for (const std::string &attribute : send_object.second)
+							else if (strcmp(attribute.c_str(), "quaternion") == 0)
 							{
-								if (strcmp(attribute.c_str(), "position") == 0)
+								const double w = response_json["send"][send_object.first][attribute][0].asDouble();
+								const double x = response_json["send"][send_object.first][attribute][1].asDouble();
+								const double y = response_json["send"][send_object.first][attribute][2].asDouble();
+								const double z = response_json["send"][send_object.first][attribute][3].asDouble();
+								if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 								{
-									buffer_addr += 3;
+									xquat_desired[0] = w;
+									xquat_desired[1] = x;
+									xquat_desired[2] = y;
+									xquat_desired[3] = z;
 								}
-								else if (strcmp(attribute.c_str(), "quaternion") == 0)
+							}
+						}
+
+						const int qpos_id = m->jnt_qposadr[m->body_jntadr[body_id]];
+						d->qpos[qpos_id] = xpos_desired[0];
+						d->qpos[qpos_id + 1] = xpos_desired[1];
+						d->qpos[qpos_id + 2] = xpos_desired[2];
+						d->qpos[qpos_id + 3] = xquat_desired[0];
+						d->qpos[qpos_id + 4] = xquat_desired[1];
+						d->qpos[qpos_id + 5] = xquat_desired[2];
+						d->qpos[qpos_id + 6] = xquat_desired[3];
+					}
+					else if (m->body_dofnum[body_id] == 3 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_BALL)
+					{
+						for (const std::string &attribute : send_object.second)
+						{
+							if (strcmp(attribute.c_str(), "quaternion") == 0)
+							{
+								const double w = response_json["send"][send_object.first][attribute][0].asDouble();
+								const double x = response_json["send"][send_object.first][attribute][1].asDouble();
+								const double y = response_json["send"][send_object.first][attribute][2].asDouble();
+								const double z = response_json["send"][send_object.first][attribute][3].asDouble();
+
+								if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 								{
-									const mjtNum xquat_desired[4] = {*buffer_addr++, *buffer_addr++, *buffer_addr++, *buffer_addr++};
+									const mjtNum xquat_desired[4] = {w, x, y, z};
 									mjtNum *xquat_current_neg = d->xquat + 4 * body_id;
 									mju_negQuat(xquat_current_neg, xquat_current_neg);
 
@@ -566,54 +598,50 @@ void MjMultiverseClient::send_meta_data()
 								}
 							}
 						}
-						for (const std::string &attribute : send_object.second)
+					}
+				}
+				else if (joint_id != -1)
+				{
+					for (const std::string &attribute : send_object.second)
+					{
+						if ((strcmp(attribute.c_str(), "joint_rvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE) ||
+							(strcmp(attribute.c_str(), "joint_tvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE))
 						{
-							if (strcmp(attribute.c_str(), "force") == 0)
+							const double v = response_json["send"][send_object.first][attribute][0].asDouble();
+							if (std::isnan(v))
 							{
-								buffer_addr += 3;
-							}
-							else if (strcmp(attribute.c_str(), "torque") == 0)
-							{
-								buffer_addr += 3;
+								const int qpos_id = m->jnt_qposadr[joint_id];
+								d->qpos[qpos_id] = v;
 							}
 						}
-					}
-					else if (joint_id != -1)
-					{
-						for (const std::string &attribute : send_object.second)
+						else if ((strcmp(attribute.c_str(), "joint_quaternion") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL))
 						{
-							if ((strcmp(attribute.c_str(), "joint_rvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE) ||
-							 	(strcmp(attribute.c_str(), "joint_tvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE))
+							const double w = response_json["send"][send_object.first][attribute][0].asDouble();
+							const double x = response_json["send"][send_object.first][attribute][1].asDouble();
+							const double y = response_json["send"][send_object.first][attribute][2].asDouble();
+							const double z = response_json["send"][send_object.first][attribute][3].asDouble();
+
+							if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 							{
 								const int qpos_id = m->jnt_qposadr[joint_id];
-								d->qpos[qpos_id] = *buffer_addr++;
-							}
-							else if ((strcmp(attribute.c_str(), "joint_position") == 0))
-							{
-								buffer_addr += 3;
-							}
-							else if ((strcmp(attribute.c_str(), "joint_quaternion") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL))
-							{
-								const int qpos_id = m->jnt_qposadr[joint_id];
-								d->qpos[qpos_id] = *buffer_addr++;
-								d->qpos[qpos_id + 1] = *buffer_addr++;
-								d->qpos[qpos_id + 2] = *buffer_addr++;
+								d->qpos[qpos_id] = w;
+								d->qpos[qpos_id + 1] = x;
+								d->qpos[qpos_id + 2] = y;
+								d->qpos[qpos_id + 3] = z;
 							}
 						}
 					}
 				}
-
-				mtx.unlock();
 			}
+
+			mtx.unlock();
 
 			ROS_INFO("Initialized the socket at %s successfully.", socket_addr.c_str());
 			ROS_INFO("Start communication on %s (send: %ld, receive: %ld)", socket_addr.c_str(), send_buffer_size, receive_buffer_size);
 			send_buffer = (double *)calloc(send_buffer_size, sizeof(double));
 			receive_buffer = (double *)calloc(receive_buffer_size, sizeof(double));
 			is_enabled = true;
-		}
-
-		free(buffer); });
+		} });
 }
 
 void MjMultiverseClient::communicate()

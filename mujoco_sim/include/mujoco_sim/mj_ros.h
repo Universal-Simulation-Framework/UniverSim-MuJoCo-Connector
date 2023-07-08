@@ -28,14 +28,10 @@
 #include "mujoco_msgs/ObjectStatus.h"
 #include "mujoco_msgs/SpawnObject.h"
 
-#include <geometry_msgs/TransformStamped.h>
+#include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Vector3Stamped.h>
-#include <nav_msgs/Odometry.h>
-#include <sensor_msgs/JointState.h>
 #include <std_srvs/Trigger.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2_ros/transform_broadcaster.h>
 #include <visualization_msgs/MarkerArray.h>
 
 class CmdVelCallback
@@ -115,13 +111,9 @@ private:
     ~MjRos();
 
 private:
-    void publish_tf(const EObjectType object_type = EObjectType::None);
-
     void publish_marker_array(const EObjectType object_type = EObjectType::None);
 
     void publish_object_state_array(const EObjectType object_type = EObjectType::None);
-
-    void publish_joint_states(const EObjectType object_type = EObjectType::None);
 
     void publish_base_pose();
 
@@ -144,13 +136,7 @@ private:
 
     void add_marker(const int body_id, const EObjectType object_type);
 
-    void set_base_pose(const int body_id, const std::string &robot_id = "");
-
-    void add_joint_states(const int body_id, const EObjectType object_type);
-
     void add_object_state(const int body_id, const EObjectType object_type);
-
-    void set_transform(geometry_msgs::TransformStamped &transform, const int body_id, const std::string &object_name);
 
     void reset_robot();
 
@@ -171,19 +157,11 @@ private:
 
     ros::ServiceServer destroy_objects_server;
 
-    std::map<std::string, ros::Publisher> base_pose_pubs;
-
     ros::Publisher marker_array_pub;
 
     ros::Publisher object_state_array_pub;
 
-    std::map<EObjectType, ros::Publisher> joint_states_pub;
-
     ros::Publisher sensors_pub;
-
-    tf2_ros::TransformBroadcaster br;
-
-    tf2_ros::StaticTransformBroadcaster static_br;
 
     std::map<std::string, float> joint_inits;
 };

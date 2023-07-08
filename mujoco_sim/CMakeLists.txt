@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   mujoco_msgs
   roslib
   controller_manager
-  tf2_ros
   urdf
 )
 

@@ -29,7 +29,6 @@
 #include <controller_manager_msgs/SwitchController.h>
 #include <numeric>
 #include <ros/package.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <thread>
 #include <urdf/model.h>
 
@@ -40,22 +39,16 @@ ros::Time MjRos::ros_start;
 static std::map<std::string, std::string> root_names;
 
 static std::map<EObjectType, double> pub_marker_array_rate;
-static std::map<EObjectType, double> pub_tf_rate;
 static std::map<EObjectType, double> pub_object_state_array_rate;
-static std::map<EObjectType, double> pub_joint_states_rate;
 
-static double pub_base_pose_rate;
 static double pub_sensor_data_rate;
 static double spawn_and_destroy_objects_rate;
 static int spawn_object_count_per_cycle;
 
 static std::map<EObjectType, visualization_msgs::Marker> marker;
 static std::map<EObjectType, visualization_msgs::MarkerArray> marker_array;
-static std::map<EObjectType, sensor_msgs::JointState> joint_states;
 static std::map<EObjectType, mujoco_msgs::ObjectStateArray> object_state_array;
 static std::map<EObjectType, bool> free_bodies_only;
-
-static std::map<std::string, nav_msgs::Odometry> base_poses;
 
 static std::condition_variable condition;
 
@@ -70,7 +63,6 @@ static std::mutex destroy_mtx;
 static std::set<std::string> object_names_to_destroy;
 static bool destroy_success;
 
-static bool pub_tf_of_free_bodies_only;
 static bool pub_object_marker_array_of_free_bodies_only;
 static bool pub_object_state_array_of_free_bodies_only;
 
@@ -201,11 +193,6 @@ void CmdVelCallback::callback(const geometry_msgs::Twist &msg)
     MjSim::odom_vels[robot + "_ang_odom_x_joint"] = MjSim::add_odom_joints[robot]["ang_odom_x_joint"] ? msg.angular.x : 0.0;
     MjSim::odom_vels[robot + "_ang_odom_y_joint"] = MjSim::add_odom_joints[robot]["ang_odom_y_joint"] ? msg.angular.y : 0.0;
     MjSim::odom_vels[robot + "_ang_odom_z_joint"] = MjSim::add_odom_joints[robot]["ang_odom_z_joint"] ? msg.angular.z : 0.0;
-
-    if (pub_base_pose_rate > 1E-9)
-    {
-        base_poses[robot].twist.twist = msg;
-    }
 }
 
 MjRos::~MjRos()
@@ -404,26 +391,6 @@ void MjRos::init()
         }
     }
 
-    if (ros::param::has("~pub_tf"))
-    {
-        if (!ros::param::get("~pub_tf/free_bodies_only", pub_tf_of_free_bodies_only))
-        {
-            pub_tf_of_free_bodies_only = true;
-        }
-        if (!ros::param::get("~pub_tf/robot_bodies_rate", pub_tf_rate[EObjectType::Robot]))
-        {
-            pub_tf_rate[EObjectType::Robot] = 0.0;
-        }
-        if (!ros::param::get("~pub_tf/world_bodies_rate", pub_tf_rate[EObjectType::World]))
-        {
-            pub_tf_rate[EObjectType::World] = 0.0;
-        }
-        if (!ros::param::get("~pub_tf/spawned_object_bodies_rate", pub_tf_rate[EObjectType::SpawnedObject]))
-        {
-            pub_tf_rate[EObjectType::SpawnedObject] = 60.0;
-        }
-    }
-
     if (ros::param::has("~pub_object_state_array"))
     {
         if (!ros::param::get("~pub_object_state_array/free_bodies_only", pub_object_state_array_of_free_bodies_only))
@@ -444,26 +411,6 @@ void MjRos::init()
         }
     }
 
-    if (ros::param::has("~pub_joint_states"))
-    {
-        if (!ros::param::get("~pub_joint_states/robot_bodies_rate", pub_joint_states_rate[EObjectType::Robot]))
-        {
-            pub_joint_states_rate[EObjectType::Robot] = 0.0;
-        }
-        if (!ros::param::get("~pub_joint_states/world_bodies_rate", pub_joint_states_rate[EObjectType::World]))
-        {
-            pub_joint_states_rate[EObjectType::World] = 60.0;
-        }
-        if (!ros::param::get("~pub_joint_states/spawned_object_bodies_rate", pub_joint_states_rate[EObjectType::SpawnedObject]))
-        {
-            pub_joint_states_rate[EObjectType::SpawnedObject] = 60.0;
-        }
-    }
-
-    if (!ros::param::get("~pub_base_pose_rate", pub_base_pose_rate))
-    {
-        pub_base_pose_rate = 60.0;
-    }
     if (!ros::param::get("~pub_sensor_data_rate", pub_sensor_data_rate))
     {
         pub_sensor_data_rate = 60.0;
@@ -556,15 +503,8 @@ void MjRos::init()
     }
 
     marker_array_pub = n.advertise<visualization_msgs::MarkerArray>("/mujoco/visualization_marker_array", 0);
-    for (const std::string &robot : MjSim::robot_names)
-    {
-        base_pose_pubs[robot] = n.advertise<nav_msgs::Odometry>("/" + robot + "/" + root_names[robot], 0);
-    }
 
     object_state_array_pub = n.advertise<mujoco_msgs::ObjectStateArray>("/mujoco/object_states", 0);
-    joint_states_pub[EObjectType::Robot] = n.advertise<sensor_msgs::JointState>("/mujoco/robot_joint_states", 0);
-    joint_states_pub[EObjectType::World] = n.advertise<sensor_msgs::JointState>("/mujoco/world_joint_states", 0);
-    joint_states_pub[EObjectType::SpawnedObject] = n.advertise<sensor_msgs::JointState>("/mujoco/object_joint_states", 0);
     sensors_pub = n.advertise<geometry_msgs::Vector3Stamped>("/mujoco/sensors_3D", 0);
 
     reset_robot();
@@ -612,18 +552,12 @@ void MjRos::reset_robot()
 
 void MjRos::setup_publishers()
 {
-    std::thread ros_thread1(&MjRos::publish_tf, this, EObjectType::None);
     std::thread ros_thread2(&MjRos::publish_marker_array, this, EObjectType::None);
     std::thread ros_thread3(&MjRos::publish_object_state_array, this, EObjectType::None);
-    std::thread ros_thread4(&MjRos::publish_joint_states, this, EObjectType::None);
-    std::thread ros_thread5(&MjRos::publish_base_pose, this);
     std::thread ros_thread6(&MjRos::publish_sensor_data, this);
 
-    ros_thread1.join();
     ros_thread2.join();
     ros_thread3.join();
-    ros_thread4.join();
-    ros_thread5.join();
     ros_thread6.join();
 }
 
@@ -1531,30 +1465,6 @@ void MjRos::spawn_and_destroy_objects()
         // Spawn objects
         if (objects_to_spawn.size() > 0)
         {
-            if (pub_tf_rate[EObjectType::SpawnedObject] > 1E-9)
-            {
-                std_msgs::Header header;
-                header.frame_id = root_frame_id;
-                header.stamp = ros::Time::now();
-
-                geometry_msgs::TransformStamped transform;
-                transform.header = header;
-
-                // Publish tf of static objects
-                std::string object_name;
-                for (const mujoco_msgs::ObjectStatus &object : objects_to_spawn)
-                {
-                    const char *name = object.info.name.c_str();
-                    const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, name);
-                    if (m->body_mocapid[body_id] == -1)
-                    {
-                        continue;
-                    }
-                    set_transform(transform, body_id, name);
-                    static_br.sendTransform(transform);
-                }
-            }
-
             std::unique_lock<std::mutex> lk(spawn_mtx);
 
             while (objects_to_spawn.size() > 0)
@@ -1631,73 +1541,6 @@ void MjRos::spawn_and_destroy_objects()
             // Publish destroy markers
             marker_array_pub.publish(destroy_marker_array);
         }
-
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-}
-
-void MjRos::publish_tf(const EObjectType object_type)
-{
-    if (object_type == EObjectType::None)
-    {
-        std::thread publish_tf_robot_thread(&MjRos::publish_tf, this, EObjectType::Robot);
-        std::thread publish_tf_world_thread(&MjRos::publish_tf, this, EObjectType::World);
-        std::thread publish_tf_spawned_object_thread(&MjRos::publish_tf, this, EObjectType::SpawnedObject);
-        publish_tf_robot_thread.join();
-        publish_tf_world_thread.join();
-        publish_tf_spawned_object_thread.join();
-        return;
-    }
-
-    if (pub_tf_rate[object_type] < 1E-9)
-    {
-        return;
-    }
-
-    geometry_msgs::TransformStamped transform;
-
-    ros::Rate loop_rate(pub_tf_rate[object_type]);
-
-    std_msgs::Header header;
-    header.frame_id = root_frame_id;
-    header.stamp = ros::Time::now();
-
-    transform.header = header;
-
-    // Publish tf of static objects
-    if (object_type == EObjectType::World || EObjectType::SpawnedObject)
-    {
-        std::string object_name;
-        for (int body_id = 1; body_id < m->nbody; body_id++)
-        {
-            if (m->body_mocapid[body_id] == -1)
-            {
-                continue;
-            }
-            object_name = mj_id2name(m, mjtObj::mjOBJ_BODY, body_id);
-            set_transform(transform, body_id, object_name);
-            static_br.sendTransform(transform);
-        }
-    }
-
-    while (ros::ok())
-    {
-        // Set header
-        header.stamp = ros::Time::now();
-        header.seq += 1;
-
-        transform.header = header;
-
-        set_ros_msg(*this, object_type, pub_tf_of_free_bodies_only, [&](MjRos &, const int body_id, const EObjectType object_type)
-                    {
-                                if (m->body_mocapid[body_id] != -1)
-                                {
-                                    return;
-                                }
-
-                                set_transform(transform, body_id, mj_id2name(m, mjtObj::mjOBJ_BODY, body_id));
-                                br.sendTransform(transform); });
 
         ros::spinOnce();
         loop_rate.sleep();
@@ -1791,140 +1634,6 @@ void MjRos::publish_object_state_array(const EObjectType object_type)
         set_ros_msg(*this, object_type, pub_object_state_array_of_free_bodies_only, &MjRos::add_object_state);
 
         object_state_array_pub.publish(object_state_array[object_type]);
-
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-}
-
-void MjRos::publish_joint_states(const EObjectType object_type)
-{
-    if (object_type == EObjectType::None)
-    {
-        std::thread publish_joint_states_robot_thread(&MjRos::publish_joint_states, this, EObjectType::Robot);
-        std::thread publish_joint_states_world_thread(&MjRos::publish_joint_states, this, EObjectType::World);
-        std::thread publish_joint_states_spawned_object_thread(&MjRos::publish_joint_states, this, EObjectType::SpawnedObject);
-        publish_joint_states_robot_thread.join();
-        publish_joint_states_world_thread.join();
-        publish_joint_states_spawned_object_thread.join();
-        return;
-    }
-
-    if (pub_joint_states_rate[object_type] < 1E-9)
-    {
-        return;
-    }
-
-    ros::Rate loop_rate(pub_joint_states_rate[object_type]);
-
-    std_msgs::Header header;
-
-    while (ros::ok())
-    {
-        // Set header
-        header.stamp = ros::Time::now();
-        header.seq += 1;
-
-        switch (object_type)
-        {
-        case EObjectType::Robot:
-            header.frame_id = root_frame_id;
-            break;
-
-        case EObjectType::World:
-            header.frame_id = root_frame_id;
-            break;
-
-        default:
-            header.frame_id = "";
-            break;
-        }
-
-        joint_states[object_type] = sensor_msgs::JointState();
-        joint_states[object_type].header = header;
-
-        joint_states[object_type].name.clear();
-        joint_states[object_type].position.clear();
-        joint_states[object_type].velocity.clear();
-        joint_states[object_type].effort.clear();
-
-        set_ros_msg(*this, object_type, false, &MjRos::add_joint_states);
-
-        if (!joint_states[object_type].name.empty())
-        {
-            joint_states_pub[object_type].publish(joint_states[object_type]);
-        }
-
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-}
-
-void MjRos::publish_base_pose()
-{
-    if (pub_base_pose_rate < 1E-9)
-    {
-        return;
-    }
-
-    ros::Rate loop_rate(pub_base_pose_rate);
-
-    std_msgs::Header header;
-    header.frame_id = root_frame_id;
-
-    geometry_msgs::TransformStamped transform;
-
-    for (const std::string &robot : MjSim::robot_names)
-    {
-        nav_msgs::Odometry base_pose;
-        base_pose.child_frame_id = root_names[robot];
-        base_poses[robot] = base_pose;
-    }
-
-    while (ros::ok())
-    {
-        // Set header
-        header.stamp = ros::Time::now();
-        header.seq += 1;
-
-        for (const std::string &robot : MjSim::robot_names)
-        {
-            base_poses[robot].header = header;
-        }
-
-        transform.header = header;
-
-        // Publish tf of root
-        int i = 0;
-        for (const std::string &robot : MjSim::robot_names)
-        {
-            const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, robot.c_str());
-            if (body_id != -1)
-            {
-                if (MjSim::robot_names.size() > 1)
-                {
-                    set_transform(transform, body_id, robot + "/" + root_names[robot]);
-                }
-                else
-                {
-                    set_transform(transform, body_id, root_names[robot]);
-                }
-
-                br.sendTransform(transform);
-
-                if (MjSim::add_odom_joints[robot]["lin_odom_x_joint"] ||
-                    MjSim::add_odom_joints[robot]["lin_odom_y_joint"] ||
-                    MjSim::add_odom_joints[robot]["lin_odom_z_joint"] ||
-                    MjSim::add_odom_joints[robot]["ang_odom_x_joint"] ||
-                    MjSim::add_odom_joints[robot]["ang_odom_y_joint"] ||
-                    MjSim::add_odom_joints[robot]["ang_odom_z_joint"])
-                {
-                    set_base_pose(body_id, robot);
-                    base_pose_pubs[robot].publish(base_poses[robot]);
-                }
-            }
-            i++;
-        }
 
         ros::spinOnce();
         loop_rate.sleep();
@@ -2118,78 +1827,4 @@ void MjRos::add_object_state(const int body_id, const EObjectType object_type)
     }
 
     object_state_array[object_type].object_states.push_back(object_state);
-}
-
-void MjRos::set_transform(geometry_msgs::TransformStamped &transform, const int body_id, const std::string &object_name)
-{
-    transform.child_frame_id = object_name;
-
-    transform.transform.translation.x = d->xpos[3 * body_id];
-    transform.transform.translation.y = d->xpos[3 * body_id + 1];
-    transform.transform.translation.z = d->xpos[3 * body_id + 2];
-
-    const double sqrt_sum_square = mju_sqrt(d->xquat[4 * body_id] * d->xquat[4 * body_id] +
-                                            d->xquat[4 * body_id + 1] * d->xquat[4 * body_id + 1] +
-                                            d->xquat[4 * body_id + 2] * d->xquat[4 * body_id + 2] +
-                                            d->xquat[4 * body_id + 3] * d->xquat[4 * body_id + 3]);
-
-    if (mju_abs(sqrt_sum_square) < mjMINVAL)
-    {
-        transform.transform.rotation.x = 0.0;
-        transform.transform.rotation.y = 0.0;
-        transform.transform.rotation.z = 0.0;
-        transform.transform.rotation.w = 1.0;
-    }
-    else
-    {
-        transform.transform.rotation.x = d->xquat[4 * body_id + 1] / sqrt_sum_square;
-        transform.transform.rotation.y = d->xquat[4 * body_id + 2] / sqrt_sum_square;
-        transform.transform.rotation.z = d->xquat[4 * body_id + 3] / sqrt_sum_square;
-        transform.transform.rotation.w = d->xquat[4 * body_id] / sqrt_sum_square;
-    }
-}
-
-void MjRos::set_base_pose(const int body_id, const std::string &robot)
-{
-    base_poses[robot].pose.pose.position.x = d->xpos[3 * body_id];
-    base_poses[robot].pose.pose.position.y = d->xpos[3 * body_id + 1];
-    base_poses[robot].pose.pose.position.z = d->xpos[3 * body_id + 2];
-    base_poses[robot].pose.pose.orientation.x = d->xquat[4 * body_id + 1];
-    base_poses[robot].pose.pose.orientation.y = d->xquat[4 * body_id + 2];
-    base_poses[robot].pose.pose.orientation.z = d->xquat[4 * body_id + 3];
-    base_poses[robot].pose.pose.orientation.w = d->xquat[4 * body_id];
-    base_poses[robot].pose.covariance.assign(0.0);
-    base_poses[robot].twist.covariance.assign(0.0);
-}
-
-void MjRos::add_joint_states(const int body_id, const EObjectType object_type)
-{
-    if (m->body_jntnum[body_id] == 1 && (m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_HINGE || m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_SLIDE))
-    {
-        if (object_type == EObjectType::SpawnedObject)
-        {
-            int parent_body_id = body_id;
-            std::string parent_body_name;
-            do
-            {
-                parent_body_id = m->body_parentid[parent_body_id];
-                if (parent_body_id == -1)
-                {
-                    break;
-                }
-                parent_body_name = mj_id2name(m, mjtObj::mjOBJ_BODY, parent_body_id);
-            } while (spawned_object_names.find(parent_body_name) == spawned_object_names.end());
-
-            joint_states[object_type].header.frame_id = parent_body_name;
-        }
-        const int joint_id = m->body_jntadr[body_id];
-        const char *joint_name = mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id);
-        const int qpos_id = m->jnt_qposadr[joint_id];
-        const int dof_id = m->jnt_dofadr[joint_id];
-
-        joint_states[object_type].name.push_back(joint_name);
-        joint_states[object_type].position.push_back(d->qpos[qpos_id]);
-        joint_states[object_type].velocity.push_back(d->qvel[dof_id]);
-        joint_states[object_type].effort.push_back(d->qfrc_inverse[dof_id]);
-    }
 }

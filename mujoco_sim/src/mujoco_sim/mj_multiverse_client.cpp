@@ -137,7 +137,7 @@ void MjMultiverseClient::init()
 							strcmp(attribute.c_str(), "force") == 0 ||
 							strcmp(attribute.c_str(), "torque") == 0)
 						{
-							for (int body_id = 0; body_id < m->nbody; body_id++)
+							for (int body_id = 1; body_id < m->nbody; body_id++)
 							{
 								send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, body_id)].insert(attribute);
 							}
@@ -154,7 +154,7 @@ void MjMultiverseClient::init()
 							{
 								if (m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE)
 								{
-									send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, joint_id)].insert(attribute);
+									send_objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].insert(attribute);
 								}
 							}
 						}
@@ -164,7 +164,7 @@ void MjMultiverseClient::init()
 							{
 								if (m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE)
 								{
-									send_objects[mj_id2name(m, mjtObj::mjOBJ_BODY, joint_id)].insert(attribute);
+									send_objects[mj_id2name(m, mjtObj::mjOBJ_JOINT, joint_id)].insert(attribute);
 								}
 							}
 						}

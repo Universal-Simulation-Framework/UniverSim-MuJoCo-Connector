@@ -154,6 +154,7 @@ void add_mujoco_tags(const boost::filesystem::path &model_path)
         mujoco_element->LinkEndChild(compiler_element);
     }
 
+    compiler_element->SetAttribute("fusestatic", false);
     compiler_element->SetAttribute("balanceinertia", true);
     compiler_element->SetAttribute("discardvisual", true);
     compiler_element->SetAttribute("boundmass", "0.000001");

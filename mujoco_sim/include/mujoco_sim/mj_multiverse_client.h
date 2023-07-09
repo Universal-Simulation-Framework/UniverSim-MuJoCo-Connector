@@ -22,10 +22,11 @@
 
 #include "mj_model.h"
 
+#include <jsoncpp/json/json.h>
 #include <set>
 #include <thread>
 
-class MjMultiverseClient
+class MjMultiverseClient final
 {
 public:
     MjMultiverseClient(const MjMultiverseClient &) = delete;
@@ -46,10 +47,10 @@ public:
     void init(const std::string &in_host, const int in_port);
 
     /**
-     * @brief Initialize the socket
-     * 
+     * @brief Connect the socket
+     *
      */
-    void init();
+    void connect();
 
     /**
      * @brief Communicate with the server
@@ -61,19 +62,18 @@ public:
      * @brief Send close signal to the server
      *
      */
-    void deinit();
+    void disconnect();
 
 public:
     static std::map<std::string, std::set<std::string>> send_objects;
 
     static std::map<std::string, std::set<std::string>> receive_objects;
 
-public:
+private:
     std::string host;
 
     int port;
 
-private:
     bool is_enabled = false;
 
     std::vector<mjtNum *> send_data_vec;
@@ -94,12 +94,38 @@ private:
 
     std::string socket_addr;
 
-    std::thread send_meta_data_thread;
+    std::thread meta_data_thread;
 
     std::map<int, mjtNum *> contact_efforts;
 
+    std::string meta_data_str;
+
+    Json::Value meta_data_res_json;
+
 private:
-    void send_meta_data();
+    void start_meta_data_thread();
+
+    void stop_meta_data_thread();
+
+    void init_objects();
+
+    void validate_objects();
+
+    void construct_meta_data();
+
+    void clear_data_vec();
+
+    void send_and_receive_meta_data();
+
+    void bind_object_data();
+
+    void clean_up();
+
+    double get_time_now();
+
+    void bind_send_data();
+
+    void bind_receive_data();
 
 private:
     MjMultiverseClient();

@@ -786,8 +786,8 @@ bool MjRos::reset_robot_service(std_srvs::TriggerRequest &req, std_srvs::Trigger
         }
     }
 
-    mj_multiverse_client.deinit();
-    mj_multiverse_client.init();
+    mj_multiverse_client.disconnect();
+    mj_multiverse_client.connect();
     return true;
 }
 

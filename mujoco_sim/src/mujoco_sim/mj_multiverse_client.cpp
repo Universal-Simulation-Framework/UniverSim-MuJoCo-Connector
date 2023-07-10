@@ -26,7 +26,6 @@
 #include <iostream>
 #include <ros/ros.h>
 #include <tinyxml2.h>
-#include <zmq.hpp>
 
 std::map<std::string, std::set<std::string>> MjMultiverseClient::send_objects;
 
@@ -83,24 +82,6 @@ void MjMultiverseClient::validate_objects()
 
 	::validate_objects(doc, send_objects);
 	::validate_objects(doc, receive_objects);
-}
-
-MjMultiverseClient::MjMultiverseClient()
-{
-	host = "tcp://127.0.0.1";
-	port = 7500;
-}
-
-MjMultiverseClient::~MjMultiverseClient()
-{
-}
-
-void MjMultiverseClient::init(const std::string &in_host, const int in_port)
-{
-	host = in_host;
-	port = in_port;
-
-	init_objects();
 }
 
 void MjMultiverseClient::init_objects()
@@ -194,24 +175,6 @@ void MjMultiverseClient::init_objects()
 	}
 
 	validate_objects();
-}
-
-void MjMultiverseClient::connect()
-{
-	if (send_objects.size() > 0 || receive_objects.size() > 0)
-	{
-		context = zmq_ctx_new();
-
-		socket_client = zmq_socket(context, ZMQ_REQ);
-		socket_addr = host + ":" + std::to_string(port);
-
-		ROS_INFO("Open the socket connection on %s", socket_addr.c_str());
-		zmq_disconnect(socket_client, socket_addr.c_str());
-		zmq_connect(socket_client, socket_addr.c_str());
-		clear_data_vec();
-		construct_meta_data();
-		start_meta_data_thread();
-	}
 }
 
 void MjMultiverseClient::start_meta_data_thread()
@@ -525,76 +488,6 @@ void MjMultiverseClient::construct_meta_data()
 	meta_data_str = meta_data_json.toStyledString();
 }
 
-void MjMultiverseClient::send_and_receive_meta_data()
-{
-	ROS_INFO("%s", meta_data_str.c_str());
-
-	zmq_msg_t response_message;
-	zmq_msg_init(&response_message);
-
-	std::map<std::string, size_t> response_buffer_sizes = {{"send", 1}, {"receive", 1}};
-
-	while (ros::ok())
-	{
-		// Send JSON string over ZMQ
-		zmq_send(socket_client, meta_data_str.c_str(), meta_data_str.size(), 0);
-
-		// Receive response over ZMQ
-		zmq_msg_recv(&response_message, socket_client, 0);
-
-		Json::Reader reader;
-		std::string response_message_str(static_cast<char *>(zmq_msg_data(&response_message)), zmq_msg_size(&response_message));
-		reader.parse(response_message_str, meta_data_res_json);
-
-		if (meta_data_res_json["time"] < 0)
-		{
-			zmq_msg_init(&response_message);
-			ROS_WARN("The socket server at %s has been terminated, resend the message", socket_addr.c_str());
-			zmq_disconnect(socket_client, socket_addr.c_str());
-			zmq_connect(socket_client, socket_addr.c_str());
-		}
-		else
-		{
-			for (std::pair<const std::string, size_t> &response_buffer_size : response_buffer_sizes)
-			{
-				const Json::Value json_object = meta_data_res_json[response_buffer_size.first];
-				for (auto object_it = json_object.begin(); object_it != json_object.end(); ++object_it)
-				{
-					const std::string object_name = object_it.key().asString();
-					const Json::Value json_object_data = json_object[object_name];
-					for (auto object_data_it = json_object_data.begin(); object_data_it != json_object_data.end(); ++object_data_it)
-					{
-						const std::string attribute_name = object_data_it.key().asString();
-						response_buffer_size.second += json_object_data[attribute_name].size();
-					}
-				}
-			}
-
-			break;
-		}
-	}
-
-	if (response_buffer_sizes["send"] != send_buffer_size || response_buffer_sizes["receive"] != receive_buffer_size)
-	{
-		ROS_ERROR("Failed to initialize the socket at %s: send_buffer_size(server = %ld, client = %ld), receive_buffer_size(server = %ld, client = %ld).",
-				  socket_addr.c_str(),
-				  response_buffer_sizes["send"],
-				  send_buffer_size,
-				  response_buffer_sizes["receive"],
-				  receive_buffer_size);
-		zmq_disconnect(socket_client, socket_addr.c_str());
-		return;
-	}
-
-	bind_object_data();
-
-	ROS_INFO("Initialized the socket at %s successfully.", socket_addr.c_str());
-	ROS_INFO("Start communication on %s (send: %ld, receive: %ld)", socket_addr.c_str(), send_buffer_size, receive_buffer_size);
-	send_buffer = (double *)calloc(send_buffer_size, sizeof(double));
-	receive_buffer = (double *)calloc(receive_buffer_size, sizeof(double));
-	is_enabled = true;
-}
-
 void MjMultiverseClient::bind_object_data()
 {
 	mtx.lock();
@@ -738,29 +631,6 @@ void MjMultiverseClient::bind_receive_data()
 	}
 }
 
-void MjMultiverseClient::communicate()
-{
-	if (is_enabled)
-	{
-		bind_send_data();
-
-		zmq_send(socket_client, send_buffer, send_buffer_size * sizeof(double), 0);
-
-		zmq_recv(socket_client, receive_buffer, receive_buffer_size * sizeof(double), 0);
-
-		if (*receive_buffer < 0)
-		{
-			is_enabled = false;
-			ROS_WARN("The socket server at %s has been terminated, resend the message", socket_addr.c_str());
-			stop_meta_data_thread();
-			start_meta_data_thread();
-			return;
-		}
-
-		bind_receive_data();
-	}
-}
-
 void MjMultiverseClient::clean_up()
 {
 	for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
@@ -771,33 +641,6 @@ void MjMultiverseClient::clean_up()
 
 void MjMultiverseClient::stop_meta_data_thread()
 {
-	if (meta_data_thread.joinable())
-	{
-		meta_data_thread.join();
-	}
-}
-
-void MjMultiverseClient::disconnect()
-{
-	std::cout << "Closing the socket client on " << socket_addr << std::endl;
-	if (is_enabled)
-	{
-		const std::string close_data = "{}";
-
-		zmq_send(socket_client, close_data.c_str(), close_data.size(), 0);
-
-		free(send_buffer);
-		free(receive_buffer);
-
-		clean_up();
-
-		zmq_disconnect(socket_client, socket_addr.c_str());
-
-		is_enabled = false;
-	}
-
-	zmq_ctx_shutdown(context);
-
 	if (meta_data_thread.joinable())
 	{
 		meta_data_thread.join();

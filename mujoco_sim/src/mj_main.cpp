@@ -198,7 +198,10 @@ int main(int argc, char **argv)
 #endif
 
     mj_multiverse_client.init("tcp://127.0.0.1", port);
-    mj_multiverse_client.connect();
+    if (mj_multiverse_client.send_objects.size() > 0 || mj_multiverse_client.receive_objects.size() > 0)
+    {
+        mj_multiverse_client.connect();
+    }
 
     mjcb_control = controller;
 

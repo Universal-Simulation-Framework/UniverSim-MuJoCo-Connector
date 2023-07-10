@@ -22,11 +22,11 @@
 
 #include "mj_model.h"
 
-#include <jsoncpp/json/json.h>
+#include "multiverse_client/multiverse_client.h"
 #include <set>
 #include <thread>
 
-class MjMultiverseClient final
+class MjMultiverseClient final : public MultiverseClient 
 {
 public:
     MjMultiverseClient(const MjMultiverseClient &) = delete;
@@ -35,34 +35,9 @@ public:
 
     static MjMultiverseClient &get_instance()
     {
-        static MjMultiverseClient mj_state_controller;
-        return mj_state_controller;
+        static MjMultiverseClient mj_multiverse_client;
+        return mj_multiverse_client;
     }
-
-public:
-    /**
-     * @brief Initialize the socket with host and port
-     *
-     */
-    void init(const std::string &in_host, const int in_port);
-
-    /**
-     * @brief Connect the socket
-     *
-     */
-    void connect();
-
-    /**
-     * @brief Communicate with the server
-     *
-     */
-    void communicate();
-
-    /**
-     * @brief Send close signal to the server
-     *
-     */
-    void disconnect();
 
 public:
     static std::map<std::string, std::set<std::string>> send_objects;
@@ -70,65 +45,45 @@ public:
     static std::map<std::string, std::set<std::string>> receive_objects;
 
 private:
-    std::string host;
-
-    int port;
-
-    bool is_enabled = false;
-
     std::vector<mjtNum *> send_data_vec;
 
     std::vector<mjtNum *> receive_data_vec;
-
-    void *context;
-
-    void *socket_client;
-
-    size_t send_buffer_size = 1;
-
-    size_t receive_buffer_size = 1;
-
-    double *send_buffer;
-
-    double *receive_buffer;
-
-    std::string socket_addr;
 
     std::thread meta_data_thread;
 
     std::map<int, mjtNum *> contact_efforts;
 
-    std::string meta_data_str;
+private:
+    void start_meta_data_thread() override;
 
-    Json::Value meta_data_res_json;
+    void stop_meta_data_thread() override;
+
+    void init_objects() override;
+
+    void validate_objects() override;
+
+    void construct_meta_data() override;
+
+    void clear_data_vec() override;
+
+    void bind_object_data() override;
+
+    void clean_up() override;
+
+    double get_time_now() override;
+
+    void bind_send_data() override;
+
+    void bind_receive_data() override;
 
 private:
-    void start_meta_data_thread();
+    MjMultiverseClient()
+    {
 
-    void stop_meta_data_thread();
+    }
 
-    void init_objects();
+    ~MjMultiverseClient()
+    {
 
-    void validate_objects();
-
-    void construct_meta_data();
-
-    void clear_data_vec();
-
-    void send_and_receive_meta_data();
-
-    void bind_object_data();
-
-    void clean_up();
-
-    double get_time_now();
-
-    void bind_send_data();
-
-    void bind_receive_data();
-
-private:
-    MjMultiverseClient();
-
-    ~MjMultiverseClient();
+    }
 };

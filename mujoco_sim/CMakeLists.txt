@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   controller_manager
   urdf
+  multiverse_client
 )
 
 find_package(Doxygen)
@@ -53,7 +54,7 @@ add_custom_target(${MUJOCO} DEPENDS ${MUJOCO}_build)
 catkin_package(
   INCLUDE_DIRS include/mujoco_sim
   # LIBRARIES
-  CATKIN_DEPENDS roscpp rospy std_msgs roslib
+  CATKIN_DEPENDS roscpp rospy std_msgs roslib multiverse_client
   # DEPENDS 
 )
 
@@ -97,7 +98,6 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS_NODE}
   ${MUJOCO_SOURCE_DIR}/lib/libmujoco.so
   $ENV{ROS_ROOT}/../../lib/liburdf.so
   tinyxml2
-  zmq
   jsoncpp
 )
 
@@ -115,7 +115,6 @@ target_link_libraries(${MUJOCO_SIM_NODE}
   ${MUJOCO_SOURCE_DIR}/lib/libmujoco.so
   $ENV{ROS_ROOT}/../../lib/liburdf.so
   tinyxml2
-  zmq
   jsoncpp
   glfw
   GL

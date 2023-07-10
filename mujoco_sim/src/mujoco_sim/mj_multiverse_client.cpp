@@ -626,8 +626,6 @@ void MjMultiverseClient::bind_receive_data()
 
 void MjMultiverseClient::clean_up()
 {
-	meta_data_json.clear();
-
 	send_data_vec.clear();
 
 	receive_data_vec.clear();

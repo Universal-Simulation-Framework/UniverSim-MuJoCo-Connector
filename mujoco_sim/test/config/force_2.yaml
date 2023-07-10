@@ -1,5 +1,6 @@
-send:
-  table: [position, quaternion, relative_velocity]
+multiverse:
+  send:
+    table: [position, quaternion, relative_velocity]
 
-receive:
-  table: [force, torque]
+  receive:
+    table: [force, torque]

@@ -87,7 +87,7 @@ void MjMultiverseClient::validate_objects()
 void MjMultiverseClient::init_objects()
 {
 	XmlRpc::XmlRpcValue receive_object_params;
-	if (ros::param::get("~receive", receive_object_params))
+	if (ros::param::get("~multiverse/receive", receive_object_params))
 	{
 		std::string log = "Set receive_objects: ";
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_object_param : receive_object_params)
@@ -95,7 +95,7 @@ void MjMultiverseClient::init_objects()
 			log += receive_object_param.first + " ";
 			receive_objects[receive_object_param.first] = {};
 			std::vector<std::string> receive_attributes;
-			ros::param::get("~receive/" + receive_object_param.first, receive_attributes);
+			ros::param::get("~multiverse/receive/" + receive_object_param.first, receive_attributes);
 			for (const std::string &attribute : receive_attributes)
 			{
 				receive_objects[receive_object_param.first].insert(attribute);
@@ -105,13 +105,13 @@ void MjMultiverseClient::init_objects()
 	}
 
 	XmlRpc::XmlRpcValue send_object_params;
-	if (ros::param::get("~send", send_object_params))
+	if (ros::param::get("~multiverse/send", send_object_params))
 	{
 		std::string log = "Set send_objects: ";
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &send_object_param : send_object_params)
 		{
 			std::vector<std::string> send_data;
-			if (ros::param::get("~send/" + send_object_param.first, send_data))
+			if (ros::param::get("~multiverse/send/" + send_object_param.first, send_data))
 			{
 				if (strcmp(send_object_param.first.c_str(), "body") == 0)
 				{
@@ -182,17 +182,12 @@ void MjMultiverseClient::start_meta_data_thread()
 	meta_data_thread = std::thread(&MjMultiverseClient::send_and_receive_meta_data, this);
 }
 
-void MjMultiverseClient::clear_data_vec()
-{
-	send_data_vec.clear();
-	receive_data_vec.clear();
-}
-
 void MjMultiverseClient::construct_meta_data()
 {
 	// Create JSON object and populate it
-	Json::Value meta_data_json;
-	meta_data_json["simulator"] = "mujoco";
+	std::string world;
+	meta_data_json.clear();
+	meta_data_json["world"] = ros::param::get("~multiverse/world", world) ? world : "world";
 	meta_data_json["length_unit"] = "m";
 	meta_data_json["angle_unit"] = "rad";
 	meta_data_json["force_unit"] = "N";
@@ -484,8 +479,6 @@ void MjMultiverseClient::construct_meta_data()
 	}
 	mtx.unlock();
 	receive_buffer_size = 1 + receive_data_vec.size();
-
-	meta_data_str = meta_data_json.toStyledString();
 }
 
 void MjMultiverseClient::bind_object_data()
@@ -633,6 +626,12 @@ void MjMultiverseClient::bind_receive_data()
 
 void MjMultiverseClient::clean_up()
 {
+	meta_data_json.clear();
+
+	send_data_vec.clear();
+
+	receive_data_vec.clear();
+
 	for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
 	{
 		free(contact_effort.second);

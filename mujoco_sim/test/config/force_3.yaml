@@ -1,5 +1,6 @@
-send:
-  bowling: [position, quaternion, relative_velocity]
+multiverse:
+  send:
+    bowling: [position, quaternion, relative_velocity]
 
-receive:
-  bowling: [force, torque]
+  receive:
+    bowling: [force, torque]

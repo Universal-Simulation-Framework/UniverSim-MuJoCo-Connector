@@ -64,8 +64,6 @@ private:
 
     void construct_meta_data() override;
 
-    void clear_data_vec() override;
-
     void bind_object_data() override;
 
     void clean_up() override;

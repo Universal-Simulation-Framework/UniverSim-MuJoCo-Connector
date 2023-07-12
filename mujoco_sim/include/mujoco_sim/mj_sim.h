@@ -58,6 +58,12 @@ public:
      */
     void controller();
 
+    /**
+     * @brief Set the odom joint velocities
+     *
+     */
+    void set_odom_vels();
+
 public:
     /**
      * @brief Spawn new data from file

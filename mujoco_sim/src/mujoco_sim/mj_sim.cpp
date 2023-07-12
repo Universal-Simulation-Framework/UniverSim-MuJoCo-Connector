@@ -190,12 +190,11 @@ static void init_tmp()
 	// }
 
 	// Create directory tmp_model_path if not exist
-	ROS_WARN("111111111111");
 	if (!boost::filesystem::exists(tmp_model_path))
 	{
 		boost::filesystem::create_directory(tmp_model_path);
 	}
-	ROS_WARN("222222222222");
+
 	// Create directory tmp_world_mesh_path if not exist
 	std::string world_path_tail = world_path.stem().string() + "/stl/";
 	boost::filesystem::path tmp_world_mesh_path = tmp_world_path / world_path_tail;
@@ -203,7 +202,7 @@ static void init_tmp()
 	{
 		boost::filesystem::create_directories(tmp_world_mesh_path);
 	}
-	ROS_WARN("33333333333");
+
 	// Copy model meshes to tmp_world_mesh_path (to save .dae files)
 	if (boost::filesystem::exists(world_path.parent_path() / world_path_tail))
 	{
@@ -216,15 +215,14 @@ static void init_tmp()
 			}
 		}
 	}
-	ROS_WARN("4444444444");
+
 	// Copy model file to cache_model_path
-	ROS_INFO("%s - %s - %s", cache_model_path.c_str(), tmp_model_path.c_str(), model_path.c_str());
 	cache_model_path = tmp_model_path / model_path.filename();
 	if (!boost::filesystem::exists(cache_model_path))
 	{
 		boost::filesystem::copy_file(model_path, cache_model_path);
 	}
-	ROS_WARN("555555555555");
+
 	// Add world to tmp_model_path
 	tmp_model_path /= tmp_model_name;
 	tinyxml2::XMLDocument current_xml_doc;
@@ -233,7 +231,6 @@ static void init_tmp()
 		ROS_WARN("Failed to load file \"%s\"\n", world_path.c_str());
 		return;
 	}
-	ROS_WARN("66666666666");
 	boost::filesystem::path meshdir_abs_path = world_path.parent_path();
 	for (tinyxml2::XMLElement *compiler_element = current_xml_doc.FirstChildElement()->FirstChildElement("compiler");
 		 compiler_element != nullptr;
@@ -333,7 +330,6 @@ static void init_tmp()
 		}
 
 		// Add odom joints to cache_model_path if required
-		ROS_WARN("AAAAAAAAAAAAAAAAAAAAAAAAAAA");
 		for (const std::string &robot : MjSim::robot_names)
 		{
 			if (MjSim::add_odom_joints[robot]["lin_odom_x_joint"] ||

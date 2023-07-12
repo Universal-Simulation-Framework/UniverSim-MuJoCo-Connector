@@ -109,6 +109,8 @@ void simulate()
             }
 
             mj_step2(m, d);
+            
+            mj_sim.set_odom_vels();
 
             mtx.unlock();
         }

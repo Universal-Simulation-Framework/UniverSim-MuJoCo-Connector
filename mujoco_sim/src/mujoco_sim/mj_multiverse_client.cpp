@@ -634,7 +634,7 @@ void MjMultiverseClient::clean_up()
 	}
 }
 
-void MjMultiverseClient::stop_meta_data_thread()
+void MjMultiverseClient::wait_for_meta_data_thread_finish()
 {
 	if (meta_data_thread.joinable())
 	{

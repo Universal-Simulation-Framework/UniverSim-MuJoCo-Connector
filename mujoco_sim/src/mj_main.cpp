@@ -170,10 +170,10 @@ void simulate()
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "mujoco_sim");
-    int port = 7500;
+    std::string port = "7500";
     if (argc > 1)
     {
-        port = std::stoi(argv[1]);
+        port = argv[1];
     }
     ros::NodeHandle n;
 

@@ -56,7 +56,7 @@ private:
 private:
     void start_meta_data_thread() override;
 
-    void stop_meta_data_thread() override;
+    void wait_for_meta_data_thread_finish() override;
 
     void init_objects() override;
 

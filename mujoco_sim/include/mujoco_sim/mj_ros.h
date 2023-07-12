@@ -29,24 +29,7 @@
 #include "mujoco_msgs/SpawnObject.h"
 
 #include <ros/ros.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Vector3Stamped.h>
 #include <std_srvs/Trigger.h>
-
-class CmdVelCallback
-{
-
-public:
-    CmdVelCallback() {}
-
-    CmdVelCallback(const std::string &in_robot);
-
-private:
-    std::string robot;
-
-public:
-    void callback(const geometry_msgs::Twist &msg);
-};
 
 enum EObjectType : std::int8_t
 {
@@ -84,12 +67,6 @@ public:
     void init();
 
     /**
-     * @brief Setup publish threads
-     *
-     */
-    void setup_publishers();
-
-    /**
      * @brief Setup service server threads
      *
      */
@@ -110,10 +87,6 @@ private:
     ~MjRos();
 
 private:
-    void publish_object_state_array(const EObjectType object_type = EObjectType::None);
-
-    void publish_base_pose();
-
     void publish_sensor_data();
 
     void spawn_and_destroy_objects();
@@ -140,10 +113,6 @@ private:
 
     std::string root_frame_id;
 
-    std::map<std::string, CmdVelCallback *> cmd_vel_callbacks;
-
-    std::map<std::string, ros::Subscriber> cmd_vel_subs;
-
     ros::ServiceServer screenshot_server;
 
     ros::ServiceServer reset_robot_server;
@@ -151,10 +120,6 @@ private:
     ros::ServiceServer spawn_objects_server;
 
     ros::ServiceServer destroy_objects_server;
-
-    ros::Publisher object_state_array_pub;
-
-    ros::Publisher sensors_pub;
 
     std::map<std::string, float> joint_inits;
 };

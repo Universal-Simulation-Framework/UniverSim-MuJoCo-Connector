@@ -204,7 +204,6 @@ int main(int argc, char **argv)
 
     mjcb_control = controller;
 
-    std::thread ros_thread1(&MjRos::setup_publishers, &mj_ros);
     std::thread ros_thread2(&MjRos::setup_service_servers, &mj_ros);
     std::thread ros_thread3(&MjRos::get_controlled_joints, &mj_ros);
 
@@ -234,7 +233,6 @@ int main(int argc, char **argv)
     
     mj_multiverse_client.disconnect();
 
-    ros_thread1.join();
     ros_thread2.join();
     ros_thread3.join();
     sim_thread.join();

@@ -232,7 +232,6 @@ int main(int argc, char **argv)
     ros::waitForShutdown();
 #endif
     
-    mj_multiverse_client.should_shut_down = true;
     mj_multiverse_client.disconnect();
 
     ros_thread1.join();

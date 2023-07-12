@@ -87,6 +87,8 @@ public:
 
     static std::set<std::string> controlled_joints;
 
+    static std::map<std::string, mjtNum> odom_vels;
+
     static std::set<std::string> robot_link_names;
 
     static mjtNum sim_start;

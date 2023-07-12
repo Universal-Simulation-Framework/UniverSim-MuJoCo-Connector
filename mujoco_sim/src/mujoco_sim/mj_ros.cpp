@@ -177,7 +177,7 @@ MjRos::~MjRos()
 void MjRos::set_params()
 {
     std::string model_path_string;
-    if (ros::param::get("~mujoco/robot", model_path_string))
+    if (ros::param::get("~robot", model_path_string))
     {
         boost::filesystem::path model_path_path = model_path_string;
         if (model_path_path.extension() == ".urdf")
@@ -192,13 +192,13 @@ void MjRos::set_params()
         }
     }
 
-    if (!ros::param::get("~mujoco/disable_gravity", MjSim::disable_gravity))
+    if (!ros::param::get("~disable_gravity", MjSim::disable_gravity))
     {
         MjSim::disable_gravity = true;
     }
     ROS_INFO("Set disable_gravity to %s", MjSim::disable_gravity ? "true" : "false");
 
-    if (ros::param::get("~mujoco/max_time_step", MjSim::max_time_step))
+    if (ros::param::get("~max_time_step", MjSim::max_time_step))
     {
         ROS_INFO("Set max_time_step = %f", MjSim::max_time_step);
     }
@@ -208,14 +208,14 @@ void MjRos::set_params()
     }
 
     std::string world_path_string;
-    if (ros::param::get("~mujoco/world", world_path_string))
+    if (ros::param::get("~world", world_path_string))
     {
         ROS_INFO("Set world from %s", world_path_string.c_str());
         world_path = world_path_string;
     }
 
     std::vector<std::string> robots;
-    if (!ros::param::get("~mujoco/robots", robots))
+    if (!ros::param::get("~robots", robots))
     {
         ROS_WARN("Robot names not found in parameter server, searching for robot names from urdf...");
         urdf::Model urdf_model;
@@ -261,7 +261,7 @@ void MjRos::set_params()
     ROS_INFO("%s", log.c_str());
 
     std::vector<float> pose_init;
-    if (ros::param::get("~mujoco/pose_init", pose_init) && pose_init.size() == 6)
+    if (ros::param::get("~pose_init", pose_init) && pose_init.size() == 6)
     {
         for (const std::string &robot : MjSim::robot_names)
         {
@@ -272,7 +272,7 @@ void MjRos::set_params()
     {
         for (const std::string &robot : MjSim::robot_names)
         {
-            if (ros::param::get("~mujoco/pose_init/" + robot, pose_init) && pose_init.size() == 6)
+            if (ros::param::get("~pose_init/" + robot, pose_init) && pose_init.size() == 6)
             {
                 MjSim::pose_inits[robot] = pose_init;
             }
@@ -284,7 +284,7 @@ void MjRos::set_params()
     }
 
     bool add_odom_joints_bool;
-    if (ros::param::get("~mujoco/add_odom_joints", add_odom_joints_bool))
+    if (ros::param::get("~add_odom_joints", add_odom_joints_bool))
     {
         for (const std::string &robot : MjSim::robot_names)
         {
@@ -301,7 +301,7 @@ void MjRos::set_params()
         bool odom_joint_bool;
         for (const std::string &odom_joint_name : {"lin_odom_x_joint", "lin_odom_y_joint", "lin_odom_z_joint", "ang_odom_x_joint", "ang_odom_y_joint", "ang_odom_z_joint"})
         {
-            if (ros::param::get("~mujoco/add_odom_joints/" + odom_joint_name, odom_joint_bool))
+            if (ros::param::get("~add_odom_joints/" + odom_joint_name, odom_joint_bool))
             {
                 for (const std::string &robot : MjSim::robot_names)
                 {
@@ -319,7 +319,7 @@ void MjRos::set_params()
 
         for (const std::string &robot : MjSim::robot_names)
         {
-            if (ros::param::get("~mujoco/add_odom_joints/" + robot, odom_joint_bool))
+            if (ros::param::get("~add_odom_joints/" + robot, odom_joint_bool))
             {
                 MjSim::add_odom_joints[robot]["lin_odom_x_joint"] = odom_joint_bool;
                 MjSim::add_odom_joints[robot]["lin_odom_y_joint"] = odom_joint_bool;
@@ -332,7 +332,7 @@ void MjRos::set_params()
             {
                 for (const std::string &odom_joint_name : {"lin_odom_x_joint", "lin_odom_y_joint", "lin_odom_z_joint", "ang_odom_x_joint", "ang_odom_y_joint", "ang_odom_z_joint"})
                 {
-                    if (ros::param::get("~mujoco/add_odom_joints/" + robot + "/" + odom_joint_name, odom_joint_bool))
+                    if (ros::param::get("~add_odom_joints/" + robot + "/" + odom_joint_name, odom_joint_bool))
                     {
                         MjSim::add_odom_joints[robot][odom_joint_name] = odom_joint_bool;
                     }
@@ -346,19 +346,19 @@ void MjRos::init()
 {
     n = ros::NodeHandle();
 
-    if (!ros::param::get("~mujoco/pub_sensor_data_rate", pub_sensor_data_rate))
+    if (!ros::param::get("~pub_sensor_data_rate", pub_sensor_data_rate))
     {
         pub_sensor_data_rate = 60.0;
     }
-    if (!ros::param::get("~mujoco/spawn_and_destroy_objects_rate", spawn_and_destroy_objects_rate))
+    if (!ros::param::get("~spawn_and_destroy_objects_rate", spawn_and_destroy_objects_rate))
     {
         spawn_and_destroy_objects_rate = 600.0;
     }
-    if (!ros::param::get("~mujoco/root_frame_id", root_frame_id))
+    if (!ros::param::get("~root_frame_id", root_frame_id))
     {
         root_frame_id = "map";
     }
-    if (!ros::param::get("~mujoco/spawn_object_count_per_cycle", spawn_object_count_per_cycle))
+    if (!ros::param::get("~spawn_object_count_per_cycle", spawn_object_count_per_cycle))
     {
         spawn_object_count_per_cycle = -1;
     }
@@ -417,7 +417,7 @@ void MjRos::init()
     destroy_objects_server = n.advertiseService("/mujoco/destroy_objects", &MjRos::destroy_objects_service, this);
     ROS_INFO("Started [%s] service.", destroy_objects_server.getService().c_str());
 
-    if (!ros::param::get("~mujoco/joint_inits", joint_inits))
+    if (!ros::param::get("~joint_inits", joint_inits))
     {
         ROS_WARN("joint_inits not found, will set to default value (0)");
     }
@@ -447,6 +447,19 @@ void MjRos::reset_robot()
                 d->qvel[dof_id] = 0.f;
                 d->qacc[dof_id] = 0.f;
             }
+        }
+    }
+    for (std::pair<const std::string, mjtNum> &odom_joint : MjSim::odom_vels)
+    {
+        odom_joint.second = 0.f;
+        const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, odom_joint.first.c_str());
+        if (joint_id != -1)
+        {
+            const int qpos_id = m->jnt_qposadr[joint_id];
+            const int dof_id = m->jnt_dofadr[joint_id];
+            d->qpos[qpos_id] = 0.f;
+            d->qvel[dof_id] = 0.f;
+            d->qacc[dof_id] = 0.f;
         }
     }
     mj_forward(m, d);
@@ -493,7 +506,7 @@ void MjRos::get_controlled_joints()
 bool MjRos::screenshot_service(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
     std::string save_path_string;
-    if (!ros::param::get("~mujoco/save_path", save_path_string))
+    if (!ros::param::get("~save_path", save_path_string))
     {
         if (strcmp(save_path.extension().c_str(), ".xml") == 0)
         {

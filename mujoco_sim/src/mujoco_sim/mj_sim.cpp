@@ -30,8 +30,6 @@ double MjSim::max_time_step;
 
 std::map<std::string, std::vector<std::string>> MjSim::joint_names;
 
-std::map<std::string, mjtNum> MjSim::odom_vels;
-
 std::set<std::string> MjSim::robot_link_names;
 
 mjtNum *MjSim::dq = NULL;
@@ -1103,81 +1101,4 @@ void MjSim::controller()
 
 	mju_zero(ddq, m->nv);
 	mju_zero(dq, m->nv);
-}
-
-void MjSim::set_odom_vels()
-{
-	for (const std::string &robot : MjSim::robot_names)
-	{
-		const int odom_x_joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, (robot + "_ang_odom_x_joint").c_str());
-		const int odom_y_joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, (robot + "_ang_odom_y_joint").c_str());
-		const int odom_z_joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, (robot + "_ang_odom_z_joint").c_str());
-		const int odom_x_qpos_id = m->jnt_qposadr[odom_x_joint_id];
-		const int odom_y_qpos_id = m->jnt_qposadr[odom_y_joint_id];
-		const int odom_z_qpos_id = m->jnt_qposadr[odom_z_joint_id];
-		mjtNum odom_x_joint_pos = odom_x_joint_id != -1 ? d->qpos[odom_x_qpos_id] : 0.f;
-		mjtNum odom_y_joint_pos = odom_y_joint_id != -1 ? d->qpos[odom_y_qpos_id] : 0.f;
-		mjtNum odom_z_joint_pos = odom_z_joint_id != -1 ? d->qpos[odom_z_qpos_id] : 0.f;
-
-		if (MjSim::add_odom_joints[robot]["lin_odom_x_joint"])
-		{
-			const std::string joint_name = robot + "_lin_odom_x_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = MjSim::odom_vels[robot + "_lin_odom_x_joint"] * mju_cos(odom_y_joint_pos) * mju_cos(odom_z_joint_pos) + MjSim::odom_vels[robot + "_lin_odom_y_joint"] * (mju_sin(odom_x_joint_pos) * mju_sin(odom_y_joint_pos) * mju_cos(odom_z_joint_pos) - mju_cos(odom_x_joint_pos) * mju_sin(odom_z_joint_pos)) + MjSim::odom_vels[robot + "_lin_odom_z_joint"] * (mju_cos(odom_x_joint_pos) * mju_sin(odom_y_joint_pos) * mju_cos(odom_z_joint_pos) + mju_sin(odom_x_joint_pos) * mju_sin(odom_z_joint_pos));
-			}
-		}
-		if (MjSim::add_odom_joints[robot]["lin_odom_y_joint"])
-		{
-			const std::string joint_name = robot + "_lin_odom_y_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = MjSim::odom_vels[robot + "_lin_odom_x_joint"] * mju_cos(odom_y_joint_pos) * mju_sin(odom_z_joint_pos) + MjSim::odom_vels[robot + "_lin_odom_y_joint"] * (mju_sin(odom_x_joint_pos) * mju_sin(odom_y_joint_pos) * mju_sin(odom_z_joint_pos) + mju_cos(odom_x_joint_pos) * mju_cos(odom_z_joint_pos)) + MjSim::odom_vels[robot + "_lin_odom_z_joint"] * (mju_cos(odom_x_joint_pos) * mju_sin(odom_y_joint_pos) * mju_sin(odom_z_joint_pos) - mju_sin(odom_x_joint_pos) * mju_cos(odom_z_joint_pos));
-			}
-		}
-		if (MjSim::add_odom_joints[robot]["lin_odom_z_joint"])
-		{
-			const std::string joint_name = robot + "_lin_odom_z_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = -MjSim::odom_vels[robot + "_lin_odom_x_joint"] * mju_sin(odom_y_joint_pos) + MjSim::odom_vels[robot + "_lin_odom_y_joint"] * mju_sin(odom_x_joint_pos) * mju_cos(odom_y_joint_pos) + MjSim::odom_vels[robot + "_lin_odom_z_joint"] * mju_cos(odom_x_joint_pos) * mju_cos(odom_y_joint_pos);
-			}
-		}
-		if (MjSim::add_odom_joints[robot]["ang_odom_x_joint"])
-		{
-			const std::string joint_name = robot + "_ang_odom_x_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = MjSim::odom_vels[robot + "_ang_odom_x_joint"];
-			}
-		}
-		if (MjSim::add_odom_joints[robot]["ang_odom_y_joint"])
-		{
-			const std::string joint_name = robot + "_ang_odom_y_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = MjSim::odom_vels[robot + "_ang_odom_y_joint"];
-			}
-		}
-		if (MjSim::add_odom_joints[robot]["ang_odom_z_joint"])
-		{
-			const std::string joint_name = robot + "_ang_odom_z_joint";
-			const int joint_id = mj_name2id(m, mjtObj::mjOBJ_JOINT, joint_name.c_str());
-			if (joint_id != -1)
-			{
-				const int dof_id = m->jnt_dofadr[joint_id];
-				d->qvel[dof_id] = MjSim::odom_vels[robot + "_ang_odom_z_joint"];
-			}
-		}
-	}
 }

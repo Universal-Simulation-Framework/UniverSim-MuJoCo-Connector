@@ -87,7 +87,7 @@ void MjMultiverseClient::validate_objects()
 void MjMultiverseClient::init_objects()
 {
 	XmlRpc::XmlRpcValue receive_object_params;
-	if (ros::param::get("~multiverse/receive", receive_object_params))
+	if (ros::param::get("multiverse/receive", receive_object_params))
 	{
 		std::string log = "Set receive_objects: ";
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &receive_object_param : receive_object_params)
@@ -95,7 +95,7 @@ void MjMultiverseClient::init_objects()
 			log += receive_object_param.first + " ";
 			receive_objects[receive_object_param.first] = {};
 			std::vector<std::string> receive_attributes;
-			ros::param::get("~multiverse/receive/" + receive_object_param.first, receive_attributes);
+			ros::param::get("multiverse/receive/" + receive_object_param.first, receive_attributes);
 			for (const std::string &attribute : receive_attributes)
 			{
 				receive_objects[receive_object_param.first].insert(attribute);
@@ -105,13 +105,13 @@ void MjMultiverseClient::init_objects()
 	}
 
 	XmlRpc::XmlRpcValue send_object_params;
-	if (ros::param::get("~multiverse/send", send_object_params))
+	if (ros::param::get("multiverse/send", send_object_params))
 	{
 		std::string log = "Set send_objects: ";
 		for (const std::pair<std::string, XmlRpc::XmlRpcValue> &send_object_param : send_object_params)
 		{
 			std::vector<std::string> send_data;
-			if (ros::param::get("~multiverse/send/" + send_object_param.first, send_data))
+			if (ros::param::get("multiverse/send/" + send_object_param.first, send_data))
 			{
 				if (strcmp(send_object_param.first.c_str(), "body") == 0)
 				{
@@ -187,7 +187,7 @@ void MjMultiverseClient::construct_send_meta_data()
 	// Create JSON object and populate it
 	std::string world;
 	meta_data_json.clear();
-	meta_data_json["world"] = ros::param::get("~multiverse/world", world) ? world : "world";
+	meta_data_json["world"] = ros::param::get("multiverse/world", world) ? world : "world";
 	meta_data_json["length_unit"] = "m";
 	meta_data_json["angle_unit"] = "rad";
 	meta_data_json["force_unit"] = "N";

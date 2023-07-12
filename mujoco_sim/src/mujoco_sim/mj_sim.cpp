@@ -844,7 +844,7 @@ bool load_tmp_model(bool reset)
 static void init_references()
 {
 	XmlRpc::XmlRpcValue receive_params;
-	if (ros::param::get("~multiverse/receive", receive_params))
+	if (ros::param::get("multiverse/receive", receive_params))
 	{
 		tinyxml2::XMLDocument xml_doc;
 		if (!load_XML(xml_doc, tmp_model_path.c_str()))
@@ -871,7 +871,7 @@ static void init_references()
 			const std::string body_name = receive_param.first;
 			const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, body_name.c_str());
 
-			if (ros::param::get("~multiverse/receive/" + body_name, receive_attribute_names))
+			if (ros::param::get("multiverse/receive/" + body_name, receive_attribute_names))
 			{
 				if (std::find(receive_attribute_names.begin(), receive_attribute_names.end(), "relative_velocity") != receive_attribute_names.end())
 				{

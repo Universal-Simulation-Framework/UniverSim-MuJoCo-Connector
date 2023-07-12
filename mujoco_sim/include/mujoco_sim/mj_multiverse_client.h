@@ -22,7 +22,7 @@
 
 #include "mj_model.h"
 
-#include "multiverse_client/multiverse_client.h"
+#include "multiverse_client.h"
 #include <set>
 #include <thread>
 

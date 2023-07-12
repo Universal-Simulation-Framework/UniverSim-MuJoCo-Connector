@@ -191,6 +191,7 @@ void MjRos::set_params()
             tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + "_" + model_path.filename().string();
         }
     }
+    ROS_WARN("AAAAAAAAAAA%s", model_path.c_str());
 
     if (!ros::param::get("~mujoco/disable_gravity", MjSim::disable_gravity))
     {

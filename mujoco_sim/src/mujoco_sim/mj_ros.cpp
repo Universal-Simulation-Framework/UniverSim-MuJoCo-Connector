@@ -45,8 +45,6 @@ static double pub_sensor_data_rate;
 static double spawn_and_destroy_objects_rate;
 static int spawn_object_count_per_cycle;
 
-static std::map<EObjectType, visualization_msgs::Marker> marker;
-static std::map<EObjectType, visualization_msgs::MarkerArray> marker_array;
 static std::map<EObjectType, mujoco_msgs::ObjectStateArray> object_state_array;
 static std::map<EObjectType, bool> free_bodies_only;
 
@@ -502,8 +500,6 @@ void MjRos::init()
         ROS_WARN("joint_inits not found, will set to default value (0)");
     }
 
-    marker_array_pub = n.advertise<visualization_msgs::MarkerArray>("/mujoco/visualization_marker_array", 0);
-
     object_state_array_pub = n.advertise<mujoco_msgs::ObjectStateArray>("/mujoco/object_states", 0);
     sensors_pub = n.advertise<geometry_msgs::Vector3Stamped>("/mujoco/sensors_3D", 0);
 
@@ -552,11 +548,9 @@ void MjRos::reset_robot()
 
 void MjRos::setup_publishers()
 {
-    std::thread ros_thread2(&MjRos::publish_marker_array, this, EObjectType::None);
     std::thread ros_thread3(&MjRos::publish_object_state_array, this, EObjectType::None);
     std::thread ros_thread6(&MjRos::publish_sensor_data, this);
 
-    ros_thread2.join();
     ros_thread3.join();
     ros_thread6.join();
 }
@@ -1494,32 +1488,21 @@ void MjRos::spawn_and_destroy_objects()
             condition.notify_all();
         }
 
-        // Destroy objects
-        visualization_msgs::Marker destroy_marker;
-        visualization_msgs::MarkerArray destroy_marker_array;
-
-        destroy_marker.action = visualization_msgs::Marker::DELETE;
-
         std_msgs::Header header;
         header.frame_id = root_frame_id;
 
         // Set header
         header.stamp = ros::Time::now();
 
-        destroy_marker.header = header;
-
         for (const std::string &object_name : object_names_to_destroy)
         {
             const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, object_name.c_str());
-            destroy_marker.ns = object_name;
             for (int geom_id = m->body_geomadr[body_id]; geom_id < m->body_geomadr[body_id] + m->body_geomnum[body_id]; geom_id++)
             {
                 if (geom_id == -1)
                 {
                     continue;
                 }
-                destroy_marker.id = geom_id;
-                destroy_marker_array.markers.push_back(destroy_marker);
             }
         }
 
@@ -1534,63 +1517,6 @@ void MjRos::spawn_and_destroy_objects()
 
             lk.unlock();
             condition.notify_all();
-        }
-
-        if (destroy_marker_array.markers.size() > 0)
-        {
-            // Publish destroy markers
-            marker_array_pub.publish(destroy_marker_array);
-        }
-
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-}
-
-void MjRos::publish_marker_array(const EObjectType object_type)
-{
-    if (object_type == EObjectType::None)
-    {
-        std::thread publish_marker_array_robot_thread(&MjRos::publish_marker_array, this, EObjectType::Robot);
-        std::thread publish_marker_array_world_thread(&MjRos::publish_marker_array, this, EObjectType::World);
-        std::thread publish_marker_array_spawned_object_thread(&MjRos::publish_marker_array, this, EObjectType::SpawnedObject);
-        publish_marker_array_robot_thread.join();
-        publish_marker_array_world_thread.join();
-        publish_marker_array_spawned_object_thread.join();
-        return;
-    }
-
-    if (pub_marker_array_rate[object_type] < 1E-9)
-    {
-        return;
-    }
-
-    ros::Rate loop_rate(pub_marker_array_rate[object_type]);
-
-    marker[object_type] = visualization_msgs::Marker();
-    marker_array[object_type] = visualization_msgs::MarkerArray();
-    marker[object_type].action = visualization_msgs::Marker::MODIFY;
-    marker[object_type].frame_locked = true;
-    marker[object_type].lifetime = ros::Duration(2.0 / pub_marker_array_rate[object_type]);
-
-    std_msgs::Header header;
-    header.frame_id = root_frame_id;
-
-    while (ros::ok())
-    {
-        // Set header
-        header.stamp = ros::Time::now();
-        header.seq += 1;
-
-        marker[object_type].header = header;
-        marker_array[object_type].markers.clear();
-
-        set_ros_msg(*this, object_type, pub_object_marker_array_of_free_bodies_only, &MjRos::add_marker);
-
-        // Publish markers
-        if (marker_array.size() > 0)
-        {
-            marker_array_pub.publish(marker_array[object_type]);
         }
 
         ros::spinOnce();
@@ -1672,134 +1598,6 @@ void MjRos::publish_sensor_data()
 
         ros::spinOnce();
         loop_rate.sleep();
-    }
-}
-
-void MjRos::add_marker(const int body_id, const EObjectType object_type)
-{
-    for (int geom_id = m->body_geomadr[body_id]; geom_id < m->body_geomadr[body_id] + m->body_geomnum[body_id]; geom_id++)
-    {
-        if (geom_id == -1)
-        {
-            continue;
-        }
-        boost::filesystem::path mesh_path;
-        switch (m->geom_type[geom_id])
-        {
-        case mjtGeom::mjGEOM_BOX:
-            marker[object_type].type = visualization_msgs::Marker::CUBE;
-            marker[object_type].mesh_resource = "";
-            marker[object_type].scale.x = m->geom_size[3 * geom_id] * 2;
-            marker[object_type].scale.y = m->geom_size[3 * geom_id + 1] * 2;
-            marker[object_type].scale.z = m->geom_size[3 * geom_id + 2] * 2;
-            break;
-
-        case mjtGeom::mjGEOM_SPHERE:
-            marker[object_type].type = visualization_msgs::Marker::SPHERE;
-            marker[object_type].mesh_resource = "";
-            marker[object_type].scale.x = m->geom_size[3 * geom_id] * 2;
-            marker[object_type].scale.y = m->geom_size[3 * geom_id] * 2;
-            marker[object_type].scale.z = m->geom_size[3 * geom_id] * 2;
-            break;
-
-        case mjtGeom::mjGEOM_CYLINDER:
-            marker[object_type].type = visualization_msgs::Marker::CYLINDER;
-            marker[object_type].scale.x = m->geom_size[3 * geom_id] * 2;
-            marker[object_type].scale.y = m->geom_size[3 * geom_id] * 2;
-            marker[object_type].scale.z = m->geom_size[3 * geom_id + 1] * 2;
-            break;
-
-        case mjtGeom::mjGEOM_MESH:
-            marker[object_type].type = visualization_msgs::Marker::MESH_RESOURCE;
-            mesh_path = boost::filesystem::relative(mesh_paths[mj_id2name(m, mjtObj::mjOBJ_MESH, m->geom_dataid[geom_id])].first, tmp_world_path.parent_path());
-            if (!boost::filesystem::exists(tmp_world_path.parent_path() / mesh_path) || !mesh_path.has_extension())
-            {
-                ROS_WARN("Body %s: Mesh %s - %s not found in [%s]", mj_id2name(m, mjtObj::mjOBJ_BODY, body_id), mj_id2name(m, mjtObj::mjOBJ_MESH, m->geom_dataid[geom_id]), mesh_paths[std::string(mj_id2name(m, mjtObj::mjOBJ_MESH, m->geom_dataid[geom_id]))].first.c_str(), mesh_path.parent_path().c_str());
-                continue;
-            }
-            marker[object_type].mesh_resource = "package://mujoco_sim/model/tmp/" + mesh_path.string();
-            marker[object_type].scale.x = 1;
-            marker[object_type].scale.y = 1;
-            marker[object_type].scale.z = 1;
-            break;
-
-        default:
-            break;
-        }
-
-        marker[object_type].ns = mj_id2name(m, mjtObj::mjOBJ_BODY, body_id);
-        marker[object_type].id = geom_id;
-        marker[object_type].color.a = m->geom_rgba[4 * geom_id + 3];
-        marker[object_type].color.r = m->geom_rgba[4 * geom_id];
-        marker[object_type].color.g = m->geom_rgba[4 * geom_id + 1];
-        marker[object_type].color.b = m->geom_rgba[4 * geom_id + 2];
-
-        if (m->geom_type[geom_id] != mjtGeom::mjGEOM_MESH)
-        {
-            marker[object_type].pose.position.x = d->geom_xpos[3 * geom_id];
-            marker[object_type].pose.position.y = d->geom_xpos[3 * geom_id + 1];
-            marker[object_type].pose.position.z = d->geom_xpos[3 * geom_id + 2];
-
-            mjtNum quat[4];
-            mjtNum mat[9];
-            for (int i = 0; i < 9; i++)
-            {
-                mat[i] = d->geom_xmat[9 * geom_id + i];
-            }
-            mju_mat2Quat(quat, mat);
-            marker[object_type].pose.orientation.x = quat[1];
-            marker[object_type].pose.orientation.y = quat[2];
-            marker[object_type].pose.orientation.z = quat[3];
-            marker[object_type].pose.orientation.w = quat[0];
-        }
-        else
-        {
-            mjtNum body_pos[3];
-            body_pos[0] = d->xpos[3 * body_id];
-            body_pos[1] = d->xpos[3 * body_id + 1];
-            body_pos[2] = d->xpos[3 * body_id + 2];
-
-            mjtNum body_quat[4];
-            body_quat[0] = d->xquat[4 * body_id];
-            body_quat[1] = d->xquat[4 * body_id + 1];
-            body_quat[2] = d->xquat[4 * body_id + 2];
-            body_quat[3] = d->xquat[4 * body_id + 3];
-
-            mjtNum geom_pos[3] = {0, 0, 0};
-            if (MjSim::geom_pose.count(geom_id) > 0)
-            {
-                geom_pos[0] = MjSim::geom_pose[geom_id][0];
-                geom_pos[1] = MjSim::geom_pose[geom_id][1];
-                geom_pos[2] = MjSim::geom_pose[geom_id][2];
-            }
-
-            mjtNum pos[3];
-            mju_rotVecQuat(pos, geom_pos, body_quat);
-            mju_addTo3(pos, body_pos);
-
-            marker[object_type].pose.position.x = pos[0];
-            marker[object_type].pose.position.y = pos[1];
-            marker[object_type].pose.position.z = pos[2];
-
-            mjtNum geom_quat[4] = {1, 0, 0, 0};
-            if (MjSim::geom_pose.count(geom_id) > 0)
-            {
-                geom_quat[0] = MjSim::geom_pose[geom_id][3];
-                geom_quat[1] = MjSim::geom_pose[geom_id][4];
-                geom_quat[2] = MjSim::geom_pose[geom_id][5];
-                geom_quat[3] = MjSim::geom_pose[geom_id][6];
-            }
-
-            mjtNum quat[4];
-            mju_mulQuat(quat, body_quat, geom_quat);
-
-            marker[object_type].pose.orientation.x = quat[1];
-            marker[object_type].pose.orientation.y = quat[2];
-            marker[object_type].pose.orientation.z = quat[3];
-            marker[object_type].pose.orientation.w = quat[0];
-        }
-
-        marker_array[object_type].markers.push_back(marker[object_type]);
     }
 }
 

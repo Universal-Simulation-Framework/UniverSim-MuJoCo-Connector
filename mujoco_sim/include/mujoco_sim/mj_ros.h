@@ -32,7 +32,6 @@
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <std_srvs/Trigger.h>
-#include <visualization_msgs/MarkerArray.h>
 
 class CmdVelCallback
 {
@@ -111,8 +110,6 @@ private:
     ~MjRos();
 
 private:
-    void publish_marker_array(const EObjectType object_type = EObjectType::None);
-
     void publish_object_state_array(const EObjectType object_type = EObjectType::None);
 
     void publish_base_pose();
@@ -134,8 +131,6 @@ private:
 
     void destroy_objects(const std::set<std::string> object_names);
 
-    void add_marker(const int body_id, const EObjectType object_type);
-
     void add_object_state(const int body_id, const EObjectType object_type);
 
     void reset_robot();
@@ -156,8 +151,6 @@ private:
     ros::ServiceServer spawn_objects_server;
 
     ros::ServiceServer destroy_objects_server;
-
-    ros::Publisher marker_array_pub;
 
     ros::Publisher object_state_array_pub;
 

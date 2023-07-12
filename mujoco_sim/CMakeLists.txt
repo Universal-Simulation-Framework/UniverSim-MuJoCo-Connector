@@ -54,9 +54,7 @@ add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 set(mujoco_INCLUDE_DIRS ${MUJOCO_SOURCE_DIR}/include)
 set(mujoco_LIBRARIES ${PROJECT_SOURCE_DIR}/../../../../build/mujoco_sim/lib/libmujoco.so)
 catkin_package(
-	INCLUDE_DIRS ${mujoco_INCLUDE_DIRS}
-	# LIBRARIES
-	CATKIN_DEPENDS roscpp rospy mujoco_msgs roslib
+	CATKIN_DEPENDS roslib
 	DEPENDS mujoco
 )
 

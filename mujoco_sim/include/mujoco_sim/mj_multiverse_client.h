@@ -62,7 +62,7 @@ private:
 
     void validate_objects() override;
 
-    void construct_meta_data() override;
+    void construct_send_meta_data() override;
 
     void bind_object_data() override;
 

@@ -182,7 +182,7 @@ void MjMultiverseClient::start_meta_data_thread()
 	meta_data_thread = std::thread(&MjMultiverseClient::send_and_receive_meta_data, this);
 }
 
-void MjMultiverseClient::construct_meta_data()
+void MjMultiverseClient::construct_send_meta_data()
 {
 	// Create JSON object and populate it
 	std::string world;
@@ -325,7 +325,6 @@ void MjMultiverseClient::construct_meta_data()
 		}
 	}
 	mtx.unlock();
-	send_buffer_size = 1 + send_data_vec.size();
 
 	mtx.lock();
 	for (const std::pair<std::string, std::set<std::string>> &receive_object : receive_objects)
@@ -478,7 +477,6 @@ void MjMultiverseClient::construct_meta_data()
 		}
 	}
 	mtx.unlock();
-	receive_buffer_size = 1 + receive_data_vec.size();
 }
 
 void MjMultiverseClient::bind_object_data()

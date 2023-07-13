@@ -10,8 +10,7 @@ from mujoco_msgs.msg import ObjectStatus, ObjectInfo
 from mujoco_msgs.srv import SpawnObject, SpawnObjectRequest, DestroyObject, DestroyObjectRequest
 
 object_status = ObjectStatus()
-types = [ObjectInfo.CUBE, ObjectInfo.SPHERE,
-         ObjectInfo.CYLINDER, ObjectInfo.MESH]
+types = [ObjectInfo.CUBE, ObjectInfo.SPHERE, ObjectInfo.CYLINDER, ObjectInfo.MESH]
 meshes = ["../test/box.xml", "../test/cup.xml"]
 
 colors = [
@@ -57,9 +56,7 @@ def spawn_object(i: int) -> None:
     objects.objects = [object_status]
     rospy.wait_for_service("/mujoco/spawn_objects")
     try:
-        spawn_objects = rospy.ServiceProxy(
-            "/mujoco/spawn_objects", SpawnObject
-        )
+        spawn_objects = rospy.ServiceProxy("/mujoco/spawn_objects", SpawnObject)
         spawn_resp = spawn_objects(objects)
         rospy.loginfo("Spawn response: " + str(spawn_resp))
     except rospy.ServiceException as error:
@@ -71,9 +68,7 @@ def destroy_object(i: int) -> None:
     objects = DestroyObjectRequest()
     objects.names = ["object_" + str(i)]
     try:
-        destroy_objects = rospy.ServiceProxy(
-            "/mujoco/destroy_objects", DestroyObject
-        )
+        destroy_objects = rospy.ServiceProxy("/mujoco/destroy_objects", DestroyObject)
         destroy_resp = destroy_objects(objects)
         rospy.loginfo("Destroy response: " + str(destroy_resp))
     except rospy.ServiceException as error:
@@ -87,7 +82,7 @@ if __name__ == "__main__":
         spawn_object(object_id)
         if object_id >= 20:
             rospy.sleep(0.15)
-            destroy_object(object_id-20)
+            destroy_object(object_id - 20)
             rospy.sleep(0.15)
         else:
             rospy.sleep(0.3)

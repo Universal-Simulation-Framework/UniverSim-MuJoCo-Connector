@@ -349,6 +349,8 @@ static void init_tmp()
 				{
 					if (robot_body->Attribute("name", robot.c_str()))
 					{
+						// tinyxml2::XMLElement *freejoint_element = cache_model_xml_doc.NewElement("freejoint");
+						// robot_body->InsertEndChild(freejoint_element);
 						if (MjSim::add_odom_joints[robot]["lin_odom_x_joint"] || (MjSim::add_odom_joints[robot]["lin_odom_y_joint"] && MjSim::add_odom_joints[robot]["ang_odom_z_joint"]) || (MjSim::add_odom_joints[robot]["lin_odom_y_joint"] && MjSim::add_odom_joints[robot]["ang_odom_z_joint"]))
 						{
 							tinyxml2::XMLElement *odom_lin_x_joint_element = cache_model_xml_doc.NewElement("joint");

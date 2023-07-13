@@ -418,6 +418,65 @@ void MjMultiverseClient::construct_send_meta_data()
 						receive_data_vec.emplace_back(&d->qvel[dof_id + 4]);
 						receive_data_vec.emplace_back(&d->qvel[dof_id + 5]);
 					}
+					else if (m->body_dofnum[body_id] > 0 && m->body_jntadr[body_id] != 1)
+					{
+						std::map<std::string, mjtNum*> odom_joint_map;
+						for (int jnt_nr = 0; jnt_nr < m->body_jntnum[body_id]; jnt_nr++)
+						{
+							const int jnt_id = m->body_jntadr[body_id] + jnt_nr;
+							const int jnt_dof_id = m->jnt_dofadr[jnt_id];
+							if (m->jnt_type[jnt_id] == mjtJoint::mjJNT_SLIDE)
+							{
+								if (m->jnt_axis[3 * jnt_id] > m->jnt_axis[3 * jnt_id + 1] &&
+									m->jnt_axis[3 * jnt_id] > m->jnt_axis[3 * jnt_id + 2])
+								{
+									odom_joint_map["lin_x"] = &d->qvel[jnt_dof_id];
+								}
+								else if (m->jnt_axis[3 * jnt_id + 1] > m->jnt_axis[3 * jnt_id] &&
+										 m->jnt_axis[3 * jnt_id + 1] > m->jnt_axis[3 * jnt_id + 2])
+								{
+									odom_joint_map["lin_y"] = &d->qvel[jnt_dof_id];
+								}
+								else if (m->jnt_axis[3 * jnt_id + 2] > m->jnt_axis[3 * jnt_id] &&
+										 m->jnt_axis[3 * jnt_id + 2] > m->jnt_axis[3 * jnt_id + 1])
+								{
+									odom_joint_map["lin_z"] = &d->qvel[jnt_dof_id];
+								}
+							}
+							else if (m->jnt_type[jnt_id] == mjtJoint::mjJNT_HINGE)
+							{
+								if (m->jnt_axis[3 * jnt_id] > m->jnt_axis[3 * jnt_id + 1] &&
+									m->jnt_axis[3 * jnt_id] > m->jnt_axis[3 * jnt_id + 2])
+								{
+									odom_joint_map["ang_x"] = &d->qvel[jnt_dof_id];
+								}
+								else if (m->jnt_axis[3 * jnt_id + 1] > m->jnt_axis[3 * jnt_id] &&
+										 m->jnt_axis[3 * jnt_id + 1] > m->jnt_axis[3 * jnt_id + 2])
+								{
+									odom_joint_map["ang_y"] = &d->qvel[jnt_dof_id];
+								}
+								else if (m->jnt_axis[3 * jnt_id + 2] > m->jnt_axis[3 * jnt_id] &&
+										 m->jnt_axis[3 * jnt_id + 2] > m->jnt_axis[3 * jnt_id + 1])
+								{
+									odom_joint_map["ang_z"] = &d->qvel[jnt_dof_id];
+								}
+							}
+						}
+						int i = 0;
+						for (const std::string &odom_str : {"lin_x", "lin_y", "lin_z", "ang_x", "ang_y", "ang_z"})
+						{
+							if (odom_joint_map.count(odom_str) > 0)
+							{
+								receive_data_vec.emplace_back(odom_joint_map[odom_str]);
+							}
+							else
+							{
+								receive_data_vec.emplace_back(new mjtNum);
+							}
+							i++;
+						}			
+
+					}
 					else
 					{
 						ROS_WARN("%s for %s not supported", attribute.c_str(), body_name.c_str());

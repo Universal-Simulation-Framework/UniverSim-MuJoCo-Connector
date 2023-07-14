@@ -690,8 +690,7 @@ bool MjRos::reset_robot_service(std_srvs::TriggerRequest &req, std_srvs::Trigger
         }
     }
 
-    mj_multiverse_client.disconnect();
-    mj_multiverse_client.connect();
+    mj_multiverse_client.communicate(true);
     return true;
 }
 
@@ -732,8 +731,7 @@ bool MjRos::spawn_objects_service(mujoco_msgs::SpawnObjectRequest &req, mujoco_m
     {
         MjSim::reload_mesh = true;
         res.names = names;
-        mj_multiverse_client.disconnect();
-        mj_multiverse_client.connect();
+        mj_multiverse_client.communicate(true);
         ROS_INFO("[Spawn #%d] Spawned successfully", spawn_nr++);
     }
     else
@@ -1336,8 +1334,7 @@ bool MjRos::destroy_objects_service(mujoco_msgs::DestroyObjectRequest &req, mujo
     if (condition.wait_until(lk, std::chrono::system_clock::now() + 1000ms, [&]
                              { return destroy_success; }))
     {
-        mj_multiverse_client.disconnect();
-        mj_multiverse_client.connect();
+        mj_multiverse_client.communicate(true);
         res.object_states = object_states;
         ROS_INFO("[Destroy #%d] Destroyed successfully", destroy_nr++);
     }

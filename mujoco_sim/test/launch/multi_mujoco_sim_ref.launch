@@ -16,7 +16,7 @@
         </node>
     </group>
 
-    <group ns="sim_2">
+    <!-- <group ns="sim_2">
         <rosparam command="load" file="$(arg sim_2)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7501">
@@ -41,6 +41,6 @@
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
-    </group>
+    </group> -->
 
 </launch>

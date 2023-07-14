@@ -196,7 +196,7 @@ int main(int argc, char **argv)
     ROS_INFO("Initialized OpenGL successfully.");
 #endif
 
-    mj_multiverse_client.init("tcp://127.0.0.1", port);
+    mj_multiverse_client.connect("tcp://127.0.0.1", port);
 
     mjcb_control = controller;
 

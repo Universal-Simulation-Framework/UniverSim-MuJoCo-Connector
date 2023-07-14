@@ -5,35 +5,42 @@
     <arg name="sim_1" default="$(find mujoco_sim)/test/config/ref_1.yaml" />
     <arg name="sim_2" default="$(find mujoco_sim)/test/config/ref_2.yaml" />
     <arg name="sim_3" default="$(find mujoco_sim)/test/config/ref_3.yaml" />
+    <arg name="sim_4" default="$(find mujoco_sim)/test/config/ref_4.yaml" />
 
     <group ns="sim_1">
+        <rosparam command="load" file="$(arg sim_1)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7500">
-            <rosparam command="load" file="$(arg sim_1)" />
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
     <group ns="sim_2">
+        <rosparam command="load" file="$(arg sim_2)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7501">
-            <rosparam command="load" file="$(arg sim_2)" />
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
     <group ns="sim_3">
+        <rosparam command="load" file="$(arg sim_3)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7502">
-            <rosparam command="load" file="$(arg sim_3)" />
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
-    <!-- <node pkg="multiverse_server" type="multiverse_server" name="multiverse_server" output="screen"
-    args="7500 7501 7502"/> -->
+    <group ns="sim_4">
+        <rosparam command="load" file="$(arg sim_4)" />
+        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
+            args="7503">
+            <param name="world" value="$(arg world)" />
+            <param name="robot" type="str" value="$(arg robot)" />
+        </node>
+    </group>
 
 </launch>

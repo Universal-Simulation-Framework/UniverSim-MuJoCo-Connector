@@ -1,0 +1,8 @@
+multiverse:
+  send:
+    slider: [position, quaternion]
+
+  receive:
+    sphere: [position, quaternion]
+    cube: [position, quaternion]
+    slider: [position, quaternion]

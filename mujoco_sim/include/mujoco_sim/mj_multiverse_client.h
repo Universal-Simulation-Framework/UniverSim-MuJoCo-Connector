@@ -25,6 +25,7 @@
 #include "multiverse_client.h"
 #include <set>
 #include <thread>
+#include <tinyxml2.h>
 
 class MjMultiverseClient final : public MultiverseClient 
 {
@@ -58,21 +59,22 @@ private:
 
     void wait_for_meta_data_thread_finish() override;
 
-    void init_objects() override;
+    bool init_objects() override;
 
-    void validate_objects() override;
+    void bind_send_meta_data() override;
 
-    void construct_send_meta_data() override;
+    void bind_receive_meta_data() override;    
 
-    void bind_object_data() override;
-
-    void clean_up() override;
-
-    double get_time_now() override;
+    void init_send_and_receive_data() override;
 
     void bind_send_data() override;
 
     void bind_receive_data() override;
+
+    void clean_up() override;
+
+private:
+    void validate_objects(tinyxml2::XMLDocument &doc, std::map<std::string, std::set<std::string>> &objects);
 
 private:
     MjMultiverseClient()

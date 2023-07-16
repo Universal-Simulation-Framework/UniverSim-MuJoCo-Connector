@@ -690,7 +690,10 @@ bool MjRos::reset_robot_service(std_srvs::TriggerRequest &req, std_srvs::Trigger
         }
     }
 
+    mtx.lock();
     mj_multiverse_client.communicate(true);
+    mtx.unlock();
+    
     return true;
 }
 
@@ -731,7 +734,9 @@ bool MjRos::spawn_objects_service(mujoco_msgs::SpawnObjectRequest &req, mujoco_m
     {
         MjSim::reload_mesh = true;
         res.names = names;
+        mtx.lock();
         mj_multiverse_client.communicate(true);
+        mtx.unlock();
         ROS_INFO("[Spawn #%d] Spawned successfully", spawn_nr++);
     }
     else
@@ -1334,7 +1339,9 @@ bool MjRos::destroy_objects_service(mujoco_msgs::DestroyObjectRequest &req, mujo
     if (condition.wait_until(lk, std::chrono::system_clock::now() + 1000ms, [&]
                              { return destroy_success; }))
     {
+        mtx.lock();
         mj_multiverse_client.communicate(true);
+        mtx.unlock();
         res.object_states = object_states;
         ROS_INFO("[Destroy #%d] Destroyed successfully", destroy_nr++);
     }

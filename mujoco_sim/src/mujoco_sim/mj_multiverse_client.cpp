@@ -174,6 +174,19 @@ bool MjMultiverseClient::init_objects()
 	return send_objects.size() > 0 || receive_objects.size() > 0;
 }
 
+void MjMultiverseClient::start_connect_to_server_thread()
+{
+	connect_to_server_thread = std::thread(&MjMultiverseClient::connect_to_server, this);
+}
+
+void MjMultiverseClient::wait_for_connect_to_server_thread_finish()
+{
+	if (connect_to_server_thread.joinable())
+	{
+		connect_to_server_thread.join();
+	}
+}
+
 void MjMultiverseClient::start_meta_data_thread()
 {
 	meta_data_thread = std::thread(&MjMultiverseClient::send_and_receive_meta_data, this);

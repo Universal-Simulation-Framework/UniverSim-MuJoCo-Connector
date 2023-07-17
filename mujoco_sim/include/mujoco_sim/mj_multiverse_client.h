@@ -46,6 +46,8 @@ public:
     static std::map<std::string, std::set<std::string>> receive_objects;
 
 private:
+    std::thread connect_to_server_thread;
+
     std::vector<mjtNum *> send_data_vec;
 
     std::vector<mjtNum *> receive_data_vec;
@@ -55,6 +57,10 @@ private:
     std::map<int, mjtNum *> contact_efforts;
 
 private:
+    void start_connect_to_server_thread() override;
+
+    void wait_for_connect_to_server_thread_finish() override;
+
     void start_meta_data_thread() override;
 
     void wait_for_meta_data_thread_finish() override;

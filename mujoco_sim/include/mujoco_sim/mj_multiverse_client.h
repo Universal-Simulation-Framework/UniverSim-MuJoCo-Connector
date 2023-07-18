@@ -22,12 +22,12 @@
 
 #include "mj_model.h"
 
-#include "multiverse_client.h"
+#include "multiverse_client_json.h"
 #include <set>
 #include <thread>
 #include <tinyxml2.h>
 
-class MjMultiverseClient final : public MultiverseClient 
+class MjMultiverseClient final : public MultiverseClientJson
 {
 public:
     MjMultiverseClient(const MjMultiverseClient &) = delete;
@@ -46,15 +46,21 @@ public:
     static std::map<std::string, std::set<std::string>> receive_objects;
 
 private:
+    std::thread connect_to_server_thread;
+
+    std::thread meta_data_thread;
+
     std::vector<mjtNum *> send_data_vec;
 
     std::vector<mjtNum *> receive_data_vec;
 
-    std::thread meta_data_thread;
-
     std::map<int, mjtNum *> contact_efforts;
 
 private:
+    void start_connect_to_server_thread() override;
+
+    void wait_for_connect_to_server_thread_finish() override;
+
     void start_meta_data_thread() override;
 
     void wait_for_meta_data_thread_finish() override;

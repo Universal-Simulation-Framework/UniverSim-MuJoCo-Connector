@@ -437,7 +437,7 @@ void MjMultiverseClient::init_send_and_receive_data()
 						ROS_WARN("%s for %s not supported", attribute.c_str(), body_name.c_str());
 					}
 				}
-				else if (strcmp(attribute.c_str(), "velocity") == 0)
+				else if (strcmp(attribute.c_str(), "relative_velocity") == 0)
 				{
 					if (m->body_dofnum[body_id] == 6 && m->body_jntadr[body_id] != -1 && m->jnt_type[m->body_jntadr[body_id]] == mjtJoint::mjJNT_FREE)
 					{
@@ -666,6 +666,12 @@ void MjMultiverseClient::init_send_and_receive_data()
 
 void MjMultiverseClient::bind_send_data()
 {
+	if (send_buffer_size - 1 != send_data_vec.size())
+	{
+		ROS_WARN("The size of send_data_vec (%ld) does not match with send_buffer_size - 1 (%ld)", send_data_vec.size(), send_buffer_size);
+		return;
+	}
+	
 	for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
 	{
 		mjtNum jac[6 * m->nv];
@@ -683,10 +689,16 @@ void MjMultiverseClient::bind_send_data()
 
 void MjMultiverseClient::bind_receive_data()
 {
+	if (receive_buffer_size - 1 != receive_data_vec.size())
+	{
+		ROS_WARN("The size of receive_data_vec (%ld) does not match with receive_buffer_size - 1 (%ld)", receive_data_vec.size(), receive_buffer_size - 1);
+		return;
+	}
+
 	for (size_t i = 0; i < receive_buffer_size - 1; i++)
 	{
 		*receive_data_vec[i] = receive_buffer[i + 1];
-	}
+	}	
 }
 
 void MjMultiverseClient::clean_up()

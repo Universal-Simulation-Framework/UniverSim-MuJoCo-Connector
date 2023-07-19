@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 2.8...3.14)
 project(mujoco_sim)
 
-# # Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
-
 # # Find catkin macros and libraries
 # # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 # # is used, also find other catkin packages
@@ -38,7 +35,7 @@ set(MUJOCO_BUILD_EXAMPLES OFF)
 set(MUJOCO_BUILD_SIMULATE OFF)
 set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
-set(MUJOCO_SOURCE_DIR ${PROJECT_SOURCE_DIR}/../../../../../src/mujoco)
+set(MUJOCO_SOURCE_DIR ${CATKIN_DEVEL_PREFIX}/../../../../src/mujoco)
 add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 
 # ##################################
@@ -52,7 +49,7 @@ add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 # # DEPENDS: system dependencies of this project that dependent projects also need
 
 set(mujoco_INCLUDE_DIRS ${MUJOCO_SOURCE_DIR}/include)
-set(mujoco_LIBRARIES ${PROJECT_SOURCE_DIR}/../../../../build/mujoco_sim/lib/libmujoco.so)
+set(mujoco_LIBRARIES ${CATKIN_DEVEL_PREFIX}/../../../build/mujoco_sim/lib/libmujoco.so)
 catkin_package(
 	CATKIN_DEPENDS roslib
 	DEPENDS mujoco
@@ -70,33 +67,33 @@ include_directories(
 	${mujoco_INCLUDE_DIRS}
 )
 
-set(MUJOCO_SIM_HEADLESS_NODE mujoco_sim_headless_node)
-add_executable(${MUJOCO_SIM_HEADLESS_NODE} src/mujoco_sim_headless.cpp)
-add_library(${MUJOCO_SIM_HEADLESS_NODE}_lib
+set(MUJOCO_SIM_HEADLESS mujoco_sim_headless)
+add_executable(${MUJOCO_SIM_HEADLESS}_node src/mujoco_sim_headless.cpp)
+add_library(${MUJOCO_SIM_HEADLESS}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_hw_interface.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_ros.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_model.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_sim.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_multiverse_client.cpp
 )
-target_link_libraries(${MUJOCO_SIM_HEADLESS_NODE}
+target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	${catkin_LIBRARIES}
-	${MUJOCO_SIM_HEADLESS_NODE}_lib
+	${MUJOCO_SIM_HEADLESS}
 	$ENV{ROS_ROOT}/../../lib/liburdf.so
 	mujoco
 	tinyxml2
 	jsoncpp
 )
 
-set(MUJOCO_SIM_NODE mujoco_sim_node)
-add_executable(${MUJOCO_SIM_NODE} src/mujoco_sim.cpp)
-add_library(${MUJOCO_SIM_NODE}_lib
+set(MUJOCO_SIM mujoco_sim)
+add_executable(${MUJOCO_SIM}_node src/mujoco_sim.cpp)
+add_library(${MUJOCO_SIM}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_visual.cpp
 )
-target_link_libraries(${MUJOCO_SIM_NODE}
+target_link_libraries(${MUJOCO_SIM}_node
 	${catkin_LIBRARIES}
-	${MUJOCO_SIM_HEADLESS_NODE}_lib
-	${MUJOCO_SIM_NODE}_lib
+	${MUJOCO_SIM}
+	${MUJOCO_SIM_HEADLESS}
 	$ENV{ROS_ROOT}/../../lib/liburdf.so
 	mujoco
 	tinyxml2

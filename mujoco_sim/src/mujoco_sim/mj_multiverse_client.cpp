@@ -200,17 +200,17 @@ void MjMultiverseClient::wait_for_meta_data_thread_finish()
 	}
 }
 
-void MjMultiverseClient::bind_send_meta_data()
+void MjMultiverseClient::bind_request_meta_data()
 {
 	// Create JSON object and populate it
 	std::string world;
-	send_meta_data_json.clear();
-	send_meta_data_json["world"] = ros::param::get("multiverse/world", world) ? world : "world";
-	send_meta_data_json["length_unit"] = "m";
-	send_meta_data_json["angle_unit"] = "rad";
-	send_meta_data_json["force_unit"] = "N";
-	send_meta_data_json["time_unit"] = "s";
-	send_meta_data_json["handedness"] = "rhs";
+	request_meta_data_json.clear();
+	request_meta_data_json["world"] = ros::param::get("multiverse/world", world) ? world : "world";
+	request_meta_data_json["length_unit"] = "m";
+	request_meta_data_json["angle_unit"] = "rad";
+	request_meta_data_json["force_unit"] = "N";
+	request_meta_data_json["time_unit"] = "s";
+	request_meta_data_json["handedness"] = "rhs";
 
 	for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
 	{
@@ -221,7 +221,7 @@ void MjMultiverseClient::bind_send_meta_data()
 			const std::string body_name = send_object.first;
 			for (const std::string &attribute : send_object.second)
 			{
-				send_meta_data_json["send"][body_name].append(attribute);
+				request_meta_data_json["send"][body_name].append(attribute);
 			}
 		}
 		else if (joint_id != -1)
@@ -230,7 +230,7 @@ void MjMultiverseClient::bind_send_meta_data()
 			const int qpos_id = m->jnt_qposadr[joint_id];
 			for (const std::string &attribute : send_object.second)
 			{
-				send_meta_data_json["send"][joint_name].append(attribute);
+				request_meta_data_json["send"][joint_name].append(attribute);
 			}
 		}
 	}
@@ -244,7 +244,7 @@ void MjMultiverseClient::bind_send_meta_data()
 			const std::string body_name = receive_object.first;
 			for (const std::string &attribute : receive_object.second)
 			{
-				send_meta_data_json["receive"][body_name].append(attribute);
+				request_meta_data_json["receive"][body_name].append(attribute);
 			}
 		}
 		else if (joint_id != -1)
@@ -253,15 +253,15 @@ void MjMultiverseClient::bind_send_meta_data()
 			const int qpos_id = m->jnt_qposadr[joint_id];
 			for (const std::string &attribute : receive_object.second)
 			{
-				send_meta_data_json["receive"][joint_name].append(attribute);
+				request_meta_data_json["receive"][joint_name].append(attribute);
 			}
 		}
 	}
 
-	send_meta_data_str = send_meta_data_json.toStyledString();
+	request_meta_data_str = request_meta_data_json.toStyledString();
 }
 
-void MjMultiverseClient::bind_receive_meta_data()
+void MjMultiverseClient::bind_response_meta_data()
 {
 	mtx.lock();
 	for (const std::pair<std::string, std::set<std::string>> &send_object : send_objects)
@@ -279,9 +279,9 @@ void MjMultiverseClient::bind_receive_meta_data()
 				{
 					if (strcmp(attribute.c_str(), "position") == 0)
 					{
-						const double x = receive_meta_data_json["send"][send_object.first][attribute][0].asDouble();
-						const double y = receive_meta_data_json["send"][send_object.first][attribute][1].asDouble();
-						const double z = receive_meta_data_json["send"][send_object.first][attribute][2].asDouble();
+						const double x = response_meta_data_json["send"][send_object.first][attribute][0].asDouble();
+						const double y = response_meta_data_json["send"][send_object.first][attribute][1].asDouble();
+						const double z = response_meta_data_json["send"][send_object.first][attribute][2].asDouble();
 						if (std::isnan(x) && std::isnan(y) && std::isnan(z))
 						{
 							xpos_desired[0] = x;
@@ -291,10 +291,10 @@ void MjMultiverseClient::bind_receive_meta_data()
 					}
 					else if (strcmp(attribute.c_str(), "quaternion") == 0)
 					{
-						const double w = receive_meta_data_json["send"][send_object.first][attribute][0].asDouble();
-						const double x = receive_meta_data_json["send"][send_object.first][attribute][1].asDouble();
-						const double y = receive_meta_data_json["send"][send_object.first][attribute][2].asDouble();
-						const double z = receive_meta_data_json["send"][send_object.first][attribute][3].asDouble();
+						const double w = response_meta_data_json["send"][send_object.first][attribute][0].asDouble();
+						const double x = response_meta_data_json["send"][send_object.first][attribute][1].asDouble();
+						const double y = response_meta_data_json["send"][send_object.first][attribute][2].asDouble();
+						const double z = response_meta_data_json["send"][send_object.first][attribute][3].asDouble();
 						if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 						{
 							xquat_desired[0] = w;
@@ -320,10 +320,10 @@ void MjMultiverseClient::bind_receive_meta_data()
 				{
 					if (strcmp(attribute.c_str(), "quaternion") == 0)
 					{
-						const double w = receive_meta_data_json["send"][send_object.first][attribute][0].asDouble();
-						const double x = receive_meta_data_json["send"][send_object.first][attribute][1].asDouble();
-						const double y = receive_meta_data_json["send"][send_object.first][attribute][2].asDouble();
-						const double z = receive_meta_data_json["send"][send_object.first][attribute][3].asDouble();
+						const double w = response_meta_data_json["send"][send_object.first][attribute][0].asDouble();
+						const double x = response_meta_data_json["send"][send_object.first][attribute][1].asDouble();
+						const double y = response_meta_data_json["send"][send_object.first][attribute][2].asDouble();
+						const double z = response_meta_data_json["send"][send_object.first][attribute][3].asDouble();
 
 						if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 						{
@@ -345,7 +345,7 @@ void MjMultiverseClient::bind_receive_meta_data()
 				if ((strcmp(attribute.c_str(), "joint_rvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_HINGE) ||
 					(strcmp(attribute.c_str(), "joint_tvalue") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_SLIDE))
 				{
-					const double v = receive_meta_data_json["send"][send_object.first][attribute][0].asDouble();
+					const double v = response_meta_data_json["send"][send_object.first][attribute][0].asDouble();
 					if (std::isnan(v))
 					{
 						const int qpos_id = m->jnt_qposadr[joint_id];
@@ -354,10 +354,10 @@ void MjMultiverseClient::bind_receive_meta_data()
 				}
 				else if ((strcmp(attribute.c_str(), "joint_quaternion") == 0 && m->jnt_type[joint_id] == mjtJoint::mjJNT_BALL))
 				{
-					const double w = receive_meta_data_json["send"][send_object.first][attribute][0].asDouble();
-					const double x = receive_meta_data_json["send"][send_object.first][attribute][1].asDouble();
-					const double y = receive_meta_data_json["send"][send_object.first][attribute][2].asDouble();
-					const double z = receive_meta_data_json["send"][send_object.first][attribute][3].asDouble();
+					const double w = response_meta_data_json["send"][send_object.first][attribute][0].asDouble();
+					const double x = response_meta_data_json["send"][send_object.first][attribute][1].asDouble();
+					const double y = response_meta_data_json["send"][send_object.first][attribute][2].asDouble();
+					const double z = response_meta_data_json["send"][send_object.first][attribute][3].asDouble();
 
 					if (std::isnan(w) && std::isnan(x) && std::isnan(y) && std::isnan(z))
 					{

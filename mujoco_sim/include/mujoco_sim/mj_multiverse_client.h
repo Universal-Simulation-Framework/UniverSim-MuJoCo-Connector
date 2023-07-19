@@ -67,9 +67,9 @@ private:
 
     bool init_objects() override;
 
-    void bind_send_meta_data() override;
+    void bind_request_meta_data() override;
 
-    void bind_receive_meta_data() override;    
+    void bind_response_meta_data() override;    
 
     void init_send_and_receive_data() override;
 

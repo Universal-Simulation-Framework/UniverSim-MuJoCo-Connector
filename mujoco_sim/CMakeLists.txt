@@ -35,7 +35,12 @@ set(MUJOCO_BUILD_EXAMPLES OFF)
 set(MUJOCO_BUILD_SIMULATE OFF)
 set(MUJOCO_BUILD_TESTS OFF)
 set(MUJOCO_TEST_PYTHON_UTIL OFF)
-set(MUJOCO_SOURCE_DIR ${CATKIN_DEVEL_PREFIX}/../../../../src/mujoco)
+if(IS_DIRECTORY ${CATKIN_DEVEL_PREFIX}/../../.private)
+  set(CATKIN_DEVEL_DIR ${CATKIN_DEVEL_PREFIX}/../../../devel)
+  set(MUJOCO_SOURCE_DIR ${CATKIN_DEVEL_DIR}/../../src/mujoco)
+  set(MUJOCO_LIB_DIR ${CATKIN_DEVEL_DIR}/../build/mujoco_sim/lib)
+endif()
+
 add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 
 # ##################################
@@ -49,7 +54,7 @@ add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 # # DEPENDS: system dependencies of this project that dependent projects also need
 
 set(mujoco_INCLUDE_DIRS ${MUJOCO_SOURCE_DIR}/include)
-set(mujoco_LIBRARIES ${CATKIN_DEVEL_PREFIX}/../../../build/mujoco_sim/lib/libmujoco.so)
+set(mujoco_LIBRARIES ${MUJOCO_LIB_DIR}/libmujoco.so)
 catkin_package(
 	CATKIN_DEPENDS roslib
 	DEPENDS mujoco
@@ -69,6 +74,7 @@ include_directories(
 
 set(MUJOCO_SIM_HEADLESS mujoco_sim_headless)
 add_executable(${MUJOCO_SIM_HEADLESS}_node src/mujoco_sim_headless.cpp)
+add_dependencies(${MUJOCO_SIM_HEADLESS}_node ${catkin_EXPORTED_TARGETS})
 add_library(${MUJOCO_SIM_HEADLESS}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_hw_interface.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_ros.cpp
@@ -87,6 +93,7 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 
 set(MUJOCO_SIM mujoco_sim)
 add_executable(${MUJOCO_SIM}_node src/mujoco_sim.cpp)
+add_dependencies(${MUJOCO_SIM}_node ${catkin_EXPORTED_TARGETS})
 add_library(${MUJOCO_SIM}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_visual.cpp
 )

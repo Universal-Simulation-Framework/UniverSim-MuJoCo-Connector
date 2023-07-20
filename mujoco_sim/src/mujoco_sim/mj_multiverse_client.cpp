@@ -20,12 +20,14 @@
 
 #include "mj_multiverse_client.h"
 
-#include "mj_util.h"
 #include "mj_sim.h"
+#include "mj_util.h"
 #include <chrono>
 #include <csignal>
 #include <iostream>
-#include <ros/ros.h>
+#include <ros/ros.h> 
+
+std::mutex MjMultiverseClient::mtx;
 
 std::map<std::string, std::set<std::string>> MjMultiverseClient::send_objects;
 
@@ -91,6 +93,7 @@ bool MjMultiverseClient::init_objects()
 		ROS_INFO("%s", log.c_str());
 	}
 
+	mtx.lock();
 	XmlRpc::XmlRpcValue send_object_params;
 	if (ros::param::get("multiverse/send", send_object_params))
 	{
@@ -160,6 +163,7 @@ bool MjMultiverseClient::init_objects()
 		}
 		ROS_INFO("%s", log.c_str());
 	}
+	mtx.unlock();
 
 	tinyxml2::XMLDocument doc;
 	if (!load_XML(doc, model_path.c_str()))
@@ -167,9 +171,11 @@ bool MjMultiverseClient::init_objects()
 		ROS_WARN("Failed to load file \"%s\"\n", model_path.c_str());
 		return false;
 	}
-
+	
+	mtx.lock();
 	validate_objects(doc, send_objects);
 	validate_objects(doc, receive_objects);
+	mtx.unlock();
 
 	return send_objects.size() > 0 || receive_objects.size() > 0;
 }
@@ -202,6 +208,7 @@ void MjMultiverseClient::wait_for_meta_data_thread_finish()
 
 void MjMultiverseClient::bind_request_meta_data()
 {
+	mtx.lock();
 	// Create JSON object and populate it
 	std::string world;
 	request_meta_data_json.clear();
@@ -234,7 +241,7 @@ void MjMultiverseClient::bind_request_meta_data()
 			}
 		}
 	}
-	
+
 	for (const std::pair<std::string, std::set<std::string>> &receive_object : receive_objects)
 	{
 		const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, receive_object.first.c_str());
@@ -257,6 +264,8 @@ void MjMultiverseClient::bind_request_meta_data()
 			}
 		}
 	}
+
+	mtx.unlock();
 
 	request_meta_data_str = request_meta_data_json.toStyledString();
 }
@@ -504,7 +513,7 @@ void MjMultiverseClient::init_send_and_receive_data()
 			}
 		}
 	}
-	
+
 	for (const std::pair<std::string, std::set<std::string>> &receive_object : receive_objects)
 	{
 		const int body_id = mj_name2id(m, mjtObj::mjOBJ_BODY, receive_object.first.c_str());
@@ -671,7 +680,8 @@ void MjMultiverseClient::bind_send_data()
 		ROS_WARN("The size of send_data_vec (%ld) does not match with send_buffer_size - 1 (%ld)", send_data_vec.size(), send_buffer_size);
 		return;
 	}
-	
+
+	mtx.lock();
 	for (std::pair<const int, mjtNum *> &contact_effort : contact_efforts)
 	{
 		mjtNum jac[6 * m->nv];
@@ -685,6 +695,7 @@ void MjMultiverseClient::bind_send_data()
 	{
 		send_buffer[i + 1] = *send_data_vec[i];
 	}
+	mtx.unlock();
 }
 
 void MjMultiverseClient::bind_receive_data()
@@ -695,10 +706,12 @@ void MjMultiverseClient::bind_receive_data()
 		return;
 	}
 
+	mtx.lock();
 	for (size_t i = 0; i < receive_buffer_size - 1; i++)
 	{
 		*receive_data_vec[i] = receive_buffer[i + 1];
-	}	
+	}
+	mtx.unlock();
 }
 
 void MjMultiverseClient::clean_up()
@@ -711,4 +724,11 @@ void MjMultiverseClient::clean_up()
 	{
 		free(contact_effort.second);
 	}
+}
+
+void MjMultiverseClient::communicate(const bool resend_meta_data)
+{
+	this->mtx.lock();
+	MultiverseClient::communicate(resend_meta_data);
+	this->mtx.unlock();
 }

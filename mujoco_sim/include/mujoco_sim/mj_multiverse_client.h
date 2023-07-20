@@ -41,9 +41,14 @@ public:
     }
 
 public:
+    void communicate(const bool resend_meta_data = false) override;
+
+public:
     static std::map<std::string, std::set<std::string>> send_objects;
 
     static std::map<std::string, std::set<std::string>> receive_objects;
+
+    static std::mutex mtx;
 
 private:
     std::thread connect_to_server_thread;

@@ -48,7 +48,7 @@ public:
 
     static std::map<std::string, std::set<std::string>> receive_objects;
 
-    static std::mutex mtx;
+    static std::mutex mutex;
 
 private:
     std::thread connect_to_server_thread;

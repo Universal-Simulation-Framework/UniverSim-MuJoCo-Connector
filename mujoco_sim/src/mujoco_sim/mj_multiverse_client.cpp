@@ -27,7 +27,7 @@
 #include <iostream>
 #include <ros/ros.h> 
 
-std::mutex MjMultiverseClient::mtx;
+std::mutex MjMultiverseClient::mutex;
 
 std::map<std::string, std::set<std::string>> MjMultiverseClient::send_objects;
 
@@ -728,7 +728,7 @@ void MjMultiverseClient::clean_up()
 
 void MjMultiverseClient::communicate(const bool resend_meta_data)
 {
-	this->mtx.lock();
+	MjMultiverseClient::mutex.lock();
 	MultiverseClient::communicate(resend_meta_data);
-	this->mtx.unlock();
+	MjMultiverseClient::mutex.unlock();
 }

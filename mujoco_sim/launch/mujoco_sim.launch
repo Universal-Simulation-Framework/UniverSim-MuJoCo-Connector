@@ -1,6 +1,6 @@
 <launch>
 
-    <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
+    <arg name="robot" default="" />
     <arg name="use_urdf" default="false" />
     <arg name="world" default="$(find mujoco_sim)/model/world/empty.xml" />
     <arg name="config" default="$(find mujoco_sim)/src/config/robot.yaml" />
@@ -11,7 +11,6 @@
         <node name="urdf_to_mjcf" pkg="multiverse_parser" type="urdf_to_mjcf" output="screen" args="$(arg robot) $(arg disable_parent_child_collision_level)" />
         <param name="robot_description" command="$(find xacro)/xacro '$(arg robot)'" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen" launch-prefix="bash -c 'sleep 0.5; $0 $@' ">
-            
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>

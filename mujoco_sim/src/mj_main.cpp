@@ -23,8 +23,8 @@
 #include "mj_visual.h"
 #endif
 #include "mj_hw_interface.h"
-#include "mj_ros.h"
 #include "mj_multiverse_client.h"
+#include "mj_ros.h"
 
 #include <controller_manager/controller_manager.h>
 #include <thread>
@@ -74,7 +74,6 @@ void simulate()
     spinner.start();
     ros::Time last_sim_time = MjRos::ros_start;
     double time_step = m->opt.timestep;
-
     while (ros::ok())
     {
         mj_multiverse_client.communicate();
@@ -109,7 +108,7 @@ void simulate()
             }
 
             mj_step2(m, d);
-            
+
             mj_sim.set_odom_vels();
 
             mtx.unlock();
@@ -227,7 +226,7 @@ int main(int argc, char **argv)
 #else
     ros::waitForShutdown();
 #endif
-    
+
     mj_multiverse_client.disconnect();
 
     ros_thread2.join();

@@ -184,7 +184,10 @@ static void save_mesh_paths(tinyxml2::XMLDocument &doc, const boost::filesystem:
  */
 static void init_tmp()
 {
-	ROS_INFO("Copying model in %s...", tmp_model_path.parent_path().c_str());
+	if (model_path.has_extension())
+	{
+		ROS_INFO("Copying model into %s", tmp_model_path.parent_path().c_str());
+	}
 	// Remove directory tmp_model_path if exist and tmp_model_path doesn't contain model_path
 	// if (boost::filesystem::exists(tmp_model_path) && tmp_model_path.parent_path().compare(model_path.parent_path()) != 0)
 	// {
@@ -205,7 +208,7 @@ static void init_tmp()
 		boost::filesystem::create_directories(tmp_world_mesh_path);
 	}
 
-	// Copy model meshes to tmp_world_mesh_path (to save .dae files)
+	// Copy model meshes to tmp_world_mesh_path (to save .stl files)
 	if (boost::filesystem::exists(world_path.parent_path() / world_path_tail))
 	{
 		for (const boost::filesystem::directory_entry &file : boost::filesystem::directory_iterator(world_path.parent_path() / world_path_tail))
@@ -219,12 +222,15 @@ static void init_tmp()
 	}
 
 	// Copy model file to cache_model_path
-	cache_model_path = tmp_model_path / model_path.filename();
-	if (!boost::filesystem::exists(cache_model_path))
+	if (model_path.has_extension())
 	{
-		boost::filesystem::copy_file(model_path, cache_model_path);
+		cache_model_path = tmp_model_path / model_path.filename();
+		if (!boost::filesystem::exists(cache_model_path))
+		{
+			boost::filesystem::copy_file(model_path, cache_model_path);
+		}
 	}
-
+	
 	// Add world to tmp_model_path
 	tmp_model_path /= tmp_model_name;
 	tinyxml2::XMLDocument current_xml_doc;
@@ -257,12 +263,19 @@ static void init_tmp()
 
 	save_mesh_paths(current_xml_doc, meshdir_abs_path);
 
-	tinyxml2::XMLElement *include_element = current_xml_doc.NewElement("include");
-	current_xml_doc.FirstChildElement()->LinkEndChild(include_element);
+	if (model_path.has_extension())
+	{
+		tinyxml2::XMLElement *include_element = current_xml_doc.NewElement("include");
+		current_xml_doc.FirstChildElement()->LinkEndChild(include_element);
 
-	include_element->SetAttribute("file", boost::filesystem::relative(cache_model_path, tmp_model_path.parent_path()).c_str());
+		include_element->SetAttribute("file", boost::filesystem::relative(cache_model_path, tmp_model_path.parent_path()).c_str());
+	}
 
 	save_XML(current_xml_doc, tmp_model_path.c_str());
+	if (!model_path.has_extension())
+	{
+		return;
+	}
 
 	tinyxml2::XMLDocument cache_model_xml_doc;
 	if (!load_XML(cache_model_xml_doc, cache_model_path.c_str()))
@@ -814,7 +827,14 @@ bool load_tmp_model(bool reset)
 		init_malloc();
 
 		MjSim::geom_pose.clear();
-		return save_geom_quat(cache_model_path.c_str()) && save_geom_quat(tmp_model_path.c_str());
+		if (model_path.has_extension())
+		{
+			return save_geom_quat(cache_model_path.c_str()) && save_geom_quat(tmp_model_path.c_str());
+		}
+		else
+		{
+			return save_geom_quat(tmp_model_path.c_str());
+		}
 	}
 	else
 	{
@@ -993,9 +1013,12 @@ void MjSim::init()
 {
 	init_tmp();
 	load_tmp_model(true);
-	ROS_INFO("Reload model in %s complete", model_path.c_str());
-	set_joint_names();
-	init_sensors();
+	ROS_INFO("Reload model in %s complete", tmp_model_path.c_str());
+	if (model_path.has_extension())
+	{
+		set_joint_names();
+		init_sensors();
+	}
 	init_references();
 	sim_start = d->time;
 }

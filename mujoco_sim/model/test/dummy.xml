@@ -1,7 +1,0 @@
-<mujoco>
-  <worldbody>
-      <body name="dummy" pos="0 0 0">
-          <geom type="sphere" pos="0 0 0" size="0.01" rgba="0 0 0 0"/>
-      </body>
-  </worldbody>
-</mujoco>

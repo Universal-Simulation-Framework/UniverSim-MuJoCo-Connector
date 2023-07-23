@@ -176,22 +176,6 @@ MjRos::~MjRos()
 
 void MjRos::set_params()
 {
-    std::string model_path_string;
-    if (ros::param::get("~robot", model_path_string))
-    {
-        boost::filesystem::path model_path_path = model_path_string;
-        if (model_path_path.extension() == ".urdf")
-        {
-            model_path = model_path.parent_path() / (model_path_path.stem().string() + ".xml");
-            tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + "_" + model_path.filename().string();
-        }
-        else
-        {
-            model_path = model_path_string;
-            tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + "_" + model_path.filename().string();
-        }
-    }
-
     if (!ros::param::get("mujoco/disable_gravity", MjSim::disable_gravity))
     {
         MjSim::disable_gravity = true;
@@ -214,6 +198,27 @@ void MjRos::set_params()
         world_path = world_path_string;
     }
 
+    std::string model_path_string;
+    if (ros::param::get("~robot", model_path_string) && !model_path_string.empty())
+    {
+        boost::filesystem::path model_path_path = model_path_string;
+        if (model_path_path.extension() == ".urdf")
+        {
+            model_path = model_path.parent_path() / (model_path_path.stem().string() + ".xml");
+            tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + "_" + model_path.filename().string();
+        }
+        else
+        {
+            model_path = model_path_string;
+            tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + "_" + model_path.filename().string();
+        }
+    }
+    else
+    {
+        tmp_model_name = "current_" + std::to_string(ros::Time::now().toBoost().time_of_day().total_microseconds()) + ".xml";
+        return;
+    }
+
     std::vector<std::string> robots;
     if (!ros::param::get("~robots", robots))
     {
@@ -230,6 +235,7 @@ void MjRos::set_params()
             if (!load_XML(cache_model_xml_doc, model_path.c_str()))
             {
                 ROS_WARN("Failed to load file \"%s\"\n", model_path.c_str());
+                return;
             }
             for (tinyxml2::XMLElement *worldbody_element = cache_model_xml_doc.FirstChildElement()->FirstChildElement("worldbody");
                  worldbody_element != nullptr;
@@ -377,7 +383,7 @@ void MjRos::init()
         }
     }
 
-    if (MjSim::robot_names.size() < 2)
+    if (MjSim::robot_names.size() < 2 && model_path.has_extension())
     {
         urdf::Model urdf_model;
         if (init_urdf(urdf_model, n))

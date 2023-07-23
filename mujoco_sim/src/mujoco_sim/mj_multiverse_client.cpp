@@ -93,7 +93,6 @@ bool MjMultiverseClient::init_objects()
 		ROS_INFO("%s", log.c_str());
 	}
 
-	mtx.lock();
 	XmlRpc::XmlRpcValue send_object_params;
 	if (ros::param::get("multiverse/send", send_object_params))
 	{
@@ -163,12 +162,11 @@ bool MjMultiverseClient::init_objects()
 		}
 		ROS_INFO("%s", log.c_str());
 	}
-	mtx.unlock();
-
+	
 	tinyxml2::XMLDocument doc;
-	if (!load_XML(doc, model_path.c_str()))
+	if (!load_XML(doc, tmp_model_path.c_str()))
 	{
-		ROS_WARN("Failed to load file \"%s\"\n", model_path.c_str());
+		ROS_WARN("Failed to load file \"%s\"\n", tmp_model_path.c_str());
 		return false;
 	}
 	

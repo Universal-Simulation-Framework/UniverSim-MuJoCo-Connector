@@ -1,6 +1,5 @@
 <launch>
 
-    <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
     <arg name="world" default="$(find mujoco_sim)/model/test/pendulums.xml" />
     <arg name="sim_1" default="$(find mujoco_sim)/test/config/ref_1.yaml" />
     <arg name="sim_2" default="$(find mujoco_sim)/test/config/ref_2.yaml" />
@@ -12,7 +11,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7500">
             <param name="world" value="$(arg world)" />
-            <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
@@ -21,7 +19,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7501">
             <param name="world" value="$(arg world)" />
-            <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
@@ -30,7 +27,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7502">
             <param name="world" value="$(arg world)" />
-            <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
@@ -39,7 +35,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7503">
             <param name="world" value="$(arg world)" />
-            <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 

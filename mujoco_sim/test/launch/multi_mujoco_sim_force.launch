@@ -1,8 +1,6 @@
 <launch>
 
-    <arg name="robot" default="$(find mujoco_sim)/model/test/bowl.xml" />
-    <arg name="dummy" default="$(find mujoco_sim)/model/test/dummy.xml" />
-    <arg name="world_1" default="$(find mujoco_sim)/model/test/table_with_bowling.xml" />
+    <arg name="world_1" default="$(find mujoco_sim)/model/world/table_with_bowling.xml" />
     <arg name="world_2" default="$(find mujoco_sim)/model/test/table.xml" />
     <arg name="world_3" default="$(find mujoco_sim)/model/test/bowling.xml" />
     <arg name="sim_1" default="$(find mujoco_sim)/test/config/force_1.yaml" />
@@ -14,7 +12,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7500">
             <param name="world" value="$(arg world_1)" />
-            <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
@@ -23,7 +20,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7501">
             <param name="world" value="$(arg world_2)" />
-            <param name="robot" type="str" value="$(arg dummy)" />
         </node>
     </group>
 
@@ -32,7 +28,6 @@
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
             args="7502">
             <param name="world" value="$(arg world_3)" />
-            <param name="robot" type="str" value="$(arg dummy)" />
         </node>
     </group>
 

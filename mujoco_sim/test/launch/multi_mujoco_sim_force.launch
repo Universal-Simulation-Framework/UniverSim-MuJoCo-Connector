@@ -10,7 +10,7 @@
     <group ns="sim_1">
         <rosparam command="load" file="$(arg sim_1)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
-            args="7500">
+            args="tcp://127.0.0.1:7500">
             <param name="world" value="$(arg world_1)" />
         </node>
     </group>
@@ -18,7 +18,7 @@
     <group ns="sim_2">
         <rosparam command="load" file="$(arg sim_2)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
-            args="7501">
+            args="tcp://127.0.0.1:7501">
             <param name="world" value="$(arg world_2)" />
         </node>
     </group>
@@ -26,7 +26,7 @@
     <group ns="sim_3">
         <rosparam command="load" file="$(arg sim_3)" />
         <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen"
-            args="7502">
+            args="tcp://127.0.0.1:7502">
             <param name="world" value="$(arg world_3)" />
         </node>
     </group>

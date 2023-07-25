@@ -70,14 +70,14 @@ MjSim::~MjSim()
 static void set_joint_names()
 {
 	tinyxml2::XMLDocument cache_model_xml_doc;
-	if (!load_XML(cache_model_xml_doc, model_path.c_str()))
+	if (!load_XML(cache_model_xml_doc, cache_model_path.c_str()))
 	{
-		ROS_WARN("Failed to load file \"%s\"\n", model_path.c_str());
+		ROS_WARN("Failed to load file \"%s\"\n", cache_model_path.c_str());
 		return;
 	}
 	if (cache_model_xml_doc.FirstChildElement()->FirstChildElement("worldbody") == nullptr)
 	{
-		ROS_WARN("%s doesn't have <worldbody>", model_path.c_str());
+		ROS_WARN("%s doesn't have <worldbody>", cache_model_path.c_str());
 		return;
 	}
 

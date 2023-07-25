@@ -41,6 +41,12 @@ public:
     }
 
 public:
+    void set_server_socket_addr(const std::string &in_server_socket_addr)
+    {
+        server_socket_addr = in_server_socket_addr;
+    }
+
+public:
     void communicate(const bool resend_meta_data = false) override;
 
 public:

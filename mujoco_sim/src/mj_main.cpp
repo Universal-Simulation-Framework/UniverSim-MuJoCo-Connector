@@ -169,10 +169,10 @@ void simulate()
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "mujoco_sim");
-    std::string socket_addr = "tcp://127.0.0.1:7500";
+    std::string socket_port = "7500";
     if (argc > 1)
     {
-        socket_addr = argv[1];
+        socket_port = argv[1];
     }
     ros::NodeHandle n;
 
@@ -205,19 +205,7 @@ int main(int argc, char **argv)
     const std::string server_socket_addr = server_socket_host + ":" + std::to_string(server_socket_port);
     mj_multiverse_client.set_server_socket_addr(server_socket_addr);
 
-    std::string socket_host = "tcp://127.0.0.1";
-    std::string socket_port = "7500";
-    std::size_t last_colon_pos = socket_addr.rfind(':');
-    if (last_colon_pos != std::string::npos && last_colon_pos > 0)
-    {
-        socket_host = socket_addr.substr(0, last_colon_pos);
-    }
-    if (last_colon_pos != std::string::npos && last_colon_pos + 1 < socket_addr.length())
-    {
-        socket_port = socket_addr.substr(last_colon_pos + 1);
-    }
-
-    mj_multiverse_client.connect(socket_host, socket_port);
+    mj_multiverse_client.connect(server_socket_host, socket_port);
     mj_multiverse_client.start();
 
     mjcb_control = controller;

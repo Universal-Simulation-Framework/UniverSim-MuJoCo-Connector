@@ -20,8 +20,8 @@
 
 #include "mj_ros.h"
 
-#include "mj_util.h"
 #include "mj_multiverse_client.h"
+#include "mj_util.h"
 
 #include <condition_variable>
 #include <controller_manager_msgs/ControllerState.h>
@@ -126,7 +126,10 @@ static std::function<void(tinyxml2::XMLElement *, const mjtObj)> add_index = [](
     }
 
     std::string name = element->Attribute("name");
-    name += "_" + std::to_string(unique_index[type]);
+    if (unique_index[type] != 0)
+    {
+        name += "_" + std::to_string(unique_index[type]);
+    }
     name_map[type][element->Attribute("name")] = name;
     element->SetAttribute("name", name.c_str());
 };
@@ -149,14 +152,17 @@ static std::function<void(tinyxml2::XMLElement *, const mjtObj)> check_index = [
     {
         const size_t last_underscore_index = name.find_last_of("_");
         const std::string string_after_underscore = name.substr(last_underscore_index + 1);
-        if (string_after_underscore.empty() || string_after_underscore.find_first_not_of("0123456789") != std::string::npos)
+        if (unique_index[type] != 0)
         {
-            name += "_" + std::to_string(unique_index[type]);
-        }
-        else
-        {
-            const size_t last_index = name.find_last_not_of("0123456789");
-            name.replace(last_index + 1, unique_index[type] / 10 + 1, std::to_string(unique_index[type]));
+            if (string_after_underscore.empty() || string_after_underscore.find_first_not_of("0123456789") != std::string::npos)
+            {
+                name += "_" + std::to_string(unique_index[type]);
+            }
+            else
+            {
+                const size_t last_index = name.find_last_not_of("0123456789");
+                name.replace(last_index + 1, unique_index[type] / 10 + 1, std::to_string(unique_index[type]));
+            }
         }
 
         if (mj_name2id(m, type, name.c_str()) != -1)
@@ -697,7 +703,7 @@ bool MjRos::reset_robot_service(std_srvs::TriggerRequest &req, std_srvs::Trigger
     }
 
     mj_multiverse_client.communicate(true);
-    
+
     return true;
 }
 
@@ -738,7 +744,7 @@ bool MjRos::spawn_objects_service(mujoco_msgs::SpawnObjectRequest &req, mujoco_m
     {
         MjSim::reload_mesh = true;
         res.names = names;
-        
+
         mj_multiverse_client.communicate(true);
 
         ROS_INFO("[Spawn #%d] Spawned successfully", spawn_nr++);
@@ -1344,7 +1350,7 @@ bool MjRos::destroy_objects_service(mujoco_msgs::DestroyObjectRequest &req, mujo
                              { return destroy_success; }))
     {
         mj_multiverse_client.communicate(true);
-        
+
         res.object_states = object_states;
         ROS_INFO("[Destroy #%d] Destroyed successfully", destroy_nr++);
     }

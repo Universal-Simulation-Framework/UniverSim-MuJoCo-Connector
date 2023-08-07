@@ -63,6 +63,17 @@ catkin_package(
 # ##########
 # # Build ##
 # ##########
+if(IS_DIRECTORY ${CATKIN_DEVEL_PREFIX}/../../.private)
+  set(ENV{CATKIN_DEVEL_DIR} ${CATKIN_DEVEL_PREFIX}/../../../devel)
+  set(ENV{MUJOCO_BUILD_DIR} $ENV{CATKIN_DEVEL_DIR}/../../build/mujoco)
+endif()
+
+# Execute the shell file during CMake configuration
+execute_process(
+  COMMAND sh ${PROJECT_SOURCE_DIR}/install.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  RESULT_VARIABLE INSTALL_RESULT
+)
 
 # # Specify additional locations of header files
 # # Your package locations should be listed before other locations

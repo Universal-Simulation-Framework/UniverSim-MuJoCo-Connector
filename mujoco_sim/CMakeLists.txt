@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8...3.14)
 project(mujoco_sim)
 
+add_compile_options(-std=c++17)
+
 # # Find catkin macros and libraries
 # # if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 # # is used, also find other catkin packages
@@ -12,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
 	roslib
 	controller_manager
 	urdf
-	multiverse_client
 )
 
 find_package(Doxygen)
@@ -31,18 +32,6 @@ else(DOXYGEN_FOUND)
 	message(VERBOSE "Doxygen need to be installed to generate the doxygen documentation")
 endif(DOXYGEN_FOUND)
 
-set(MUJOCO_BUILD_EXAMPLES OFF)
-set(MUJOCO_BUILD_SIMULATE OFF)
-set(MUJOCO_BUILD_TESTS OFF)
-set(MUJOCO_TEST_PYTHON_UTIL OFF)
-if(IS_DIRECTORY ${CATKIN_DEVEL_PREFIX}/../../.private)
-  set(CATKIN_DEVEL_DIR ${CATKIN_DEVEL_PREFIX}/../../../devel)
-  set(MUJOCO_SOURCE_DIR ${CATKIN_DEVEL_DIR}/../../src/mujoco)
-  set(MUJOCO_LIB_DIR ${CATKIN_DEVEL_DIR}/../build/mujoco_sim/lib)
-endif()
-
-add_subdirectory(${MUJOCO_SOURCE_DIR} build)
-
 # ##################################
 # # catkin specific configuration ##
 # ##################################
@@ -53,34 +42,21 @@ add_subdirectory(${MUJOCO_SOURCE_DIR} build)
 # # CATKIN_DEPENDS: catkin_packages dependent projects also need
 # # DEPENDS: system dependencies of this project that dependent projects also need
 
-set(mujoco_INCLUDE_DIRS ${MUJOCO_SOURCE_DIR}/include)
-set(mujoco_LIBRARIES ${MUJOCO_LIB_DIR}/libmujoco.so)
 catkin_package(
 	CATKIN_DEPENDS roslib
-	DEPENDS mujoco
 )
 
 # ##########
 # # Build ##
 # ##########
-if(IS_DIRECTORY ${CATKIN_DEVEL_PREFIX}/../../.private)
-  set(ENV{CATKIN_DEVEL_DIR} ${CATKIN_DEVEL_PREFIX}/../../../devel)
-  set(ENV{MUJOCO_BUILD_DIR} $ENV{CATKIN_DEVEL_DIR}/../../build/mujoco)
-endif()
-
-# Execute the shell file during CMake configuration
-execute_process(
-  COMMAND sh ${PROJECT_SOURCE_DIR}/install.sh
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  RESULT_VARIABLE INSTALL_RESULT
-)
+set(MULTIVERSE_DIR ${CATKIN_DEVEL_PREFIX}/../../../../multiverse)
 
 # # Specify additional locations of header files
 # # Your package locations should be listed before other locations
 include_directories(
 	${catkin_INCLUDE_DIRS}
 	${PROJECT_SOURCE_DIR}/include/mujoco_sim
-	${mujoco_INCLUDE_DIRS}
+	${MULTIVERSE_DIR}/src/multiverse_client/include
 )
 
 set(MUJOCO_SIM_HEADLESS mujoco_sim_headless)
@@ -92,6 +68,8 @@ add_library(${MUJOCO_SIM_HEADLESS}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_model.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_sim.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_multiverse_client.cpp
+	${MULTIVERSE_DIR}/src/multiverse_client/src/multiverse_client.cpp
+	${MULTIVERSE_DIR}/src/multiverse_client/src/multiverse_client_json.cpp
 )
 target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	${catkin_LIBRARIES}
@@ -100,6 +78,8 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	mujoco
 	tinyxml2
 	jsoncpp
+	mujoco
+	zmq
 )
 
 set(MUJOCO_SIM mujoco_sim)
@@ -118,4 +98,5 @@ target_link_libraries(${MUJOCO_SIM}_node
 	jsoncpp
 	glfw
 	GL
+	zmq
 )

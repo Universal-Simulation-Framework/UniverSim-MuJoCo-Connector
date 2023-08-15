@@ -53,8 +53,9 @@ set(MULTIVERSE_DIR ${CATKIN_DEVEL_PREFIX}/../../../../multiverse)
 # # Your package locations should be listed before other locations
 include_directories(
 	${catkin_INCLUDE_DIRS}
-	${PROJECT_SOURCE_DIR}/include/mujoco_sim
+	${MULTIVERSE_DIR}/external/mujoco/include
 	${MULTIVERSE_DIR}/src/multiverse_client/include
+	${PROJECT_SOURCE_DIR}/include/mujoco_sim
 )
 
 set(MUJOCO_SIM_HEADLESS mujoco_sim_headless)

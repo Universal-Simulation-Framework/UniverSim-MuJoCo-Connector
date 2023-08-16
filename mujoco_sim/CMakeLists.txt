@@ -67,8 +67,6 @@ add_library(${MUJOCO_SIM_HEADLESS}
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_model.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_sim.cpp
 	${PROJECT_SOURCE_DIR}/src/mujoco_sim/mj_multiverse_client.cpp
-	${MULTIVERSE_DIR}/src/multiverse_client/src/multiverse_client.cpp
-	${MULTIVERSE_DIR}/src/multiverse_client/src/multiverse_client_json.cpp
 )
 target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	${catkin_LIBRARIES}
@@ -77,8 +75,8 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	mujoco
 	tinyxml2
 	jsoncpp
-	mujoco
 	zmq
+	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
 )
 
 set(MUJOCO_SIM mujoco_sim)
@@ -98,4 +96,5 @@ target_link_libraries(${MUJOCO_SIM}_node
 	glfw
 	GL
 	zmq
+	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
 )

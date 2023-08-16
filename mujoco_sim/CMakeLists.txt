@@ -72,10 +72,10 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	${catkin_LIBRARIES}
 	${MUJOCO_SIM_HEADLESS}
 	$ENV{ROS_ROOT}/../../lib/liburdf.so
-	mujoco
 	tinyxml2
 	jsoncpp
 	zmq
+	${MULTIVERSE_DIR}/build/mujoco/lib/libmujoco.so
 	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
 )
 
@@ -90,11 +90,11 @@ target_link_libraries(${MUJOCO_SIM}_node
 	${MUJOCO_SIM}
 	${MUJOCO_SIM_HEADLESS}
 	$ENV{ROS_ROOT}/../../lib/liburdf.so
-	mujoco
 	tinyxml2
 	jsoncpp
 	glfw
 	GL
 	zmq
+	${MULTIVERSE_DIR}/build/mujoco/lib/libmujoco.so
 	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
 )

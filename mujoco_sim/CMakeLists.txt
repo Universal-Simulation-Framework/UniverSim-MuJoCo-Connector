@@ -76,7 +76,7 @@ target_link_libraries(${MUJOCO_SIM_HEADLESS}_node
 	jsoncpp
 	zmq
 	${MULTIVERSE_DIR}/build/mujoco/lib/libmujoco.so
-	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
+	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json.so
 )
 
 set(MUJOCO_SIM mujoco_sim)
@@ -96,5 +96,5 @@ target_link_libraries(${MUJOCO_SIM}_node
 	GL
 	zmq
 	${MULTIVERSE_DIR}/build/mujoco/lib/libmujoco.so
-	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json_libstdc++.so
+	${MULTIVERSE_DIR}/lib/libstdc++/libmultiverse_client_json.so
 )

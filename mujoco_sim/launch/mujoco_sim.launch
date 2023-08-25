@@ -7,6 +7,13 @@
     <arg name="disable_parent_child_collision_level" default="1" />
     <arg name="socket_port" default="7500"/>
 
+    <arg name="server_host" default="tcp://127.0.0.1"/>
+    <arg name="server_port" default="7000"/>
+    <rosparam ns="multiverse" subst_value="true">
+        host: $(arg server_host)
+        port: $(arg server_port)
+    </rosparam>
+
     <rosparam command="load" file="$(arg config)" />
     <group if="$(arg use_urdf)">
         <node name="urdf_to_mjcf" pkg="multiverse_parser" type="urdf_to_mjcf_node" output="screen" args="$(arg robot) $(arg disable_parent_child_collision_level)" />

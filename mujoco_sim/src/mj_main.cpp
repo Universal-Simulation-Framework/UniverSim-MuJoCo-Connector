@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 
     std::string server_socket_host;
     int server_socket_port;
-    if (!(ros::param::get("multiverse/server_socket_host", server_socket_host) && ros::param::get("multiverse/server_socket_port", server_socket_port)))
+    if (!(ros::param::get("/multiverse/host", server_socket_host) && ros::param::get("/multiverse/port", server_socket_port)))
     {
         server_socket_host = "tcp://127.0.0.1";
         server_socket_port = 7000;

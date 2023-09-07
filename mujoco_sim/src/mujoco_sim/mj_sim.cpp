@@ -132,7 +132,7 @@ static void set_joint_names()
 	}
 }
 
-static void save_mesh_paths(tinyxml2::XMLDocument &doc, const boost::filesystem::path &meshdir_abs_path)
+static void save_mesh_paths(tinyxml2::XMLDocument &doc, const boost::filesystem::path &meshdir_abs_path, const boost::filesystem::path &texturedir_abs_path)
 {
 	for (tinyxml2::XMLElement *asset_element = doc.FirstChildElement()->FirstChildElement("asset");
 		 asset_element != nullptr;
@@ -147,7 +147,7 @@ static void save_mesh_paths(tinyxml2::XMLDocument &doc, const boost::filesystem:
 				const boost::filesystem::path file_path = texture_element->Attribute("file");
 				if (file_path.is_relative())
 				{
-					texture_element->SetAttribute("file", (meshdir_abs_path / file_path).c_str());
+					texture_element->SetAttribute("file", (texturedir_abs_path / file_path).c_str());
 				}
 			}
 		}
@@ -240,6 +240,7 @@ static void init_tmp()
 		return;
 	}
 	boost::filesystem::path meshdir_abs_path = world_path.parent_path();
+	boost::filesystem::path texturedir_abs_path = world_path.parent_path();
 	for (tinyxml2::XMLElement *compiler_element = current_xml_doc.FirstChildElement()->FirstChildElement("compiler");
 		 compiler_element != nullptr;
 		 compiler_element = compiler_element->NextSiblingElement("compiler"))
@@ -257,11 +258,24 @@ static void init_tmp()
 			}
 
 			compiler_element->DeleteAttribute("meshdir");
-			break;
+		}
+		if (compiler_element->Attribute("texturedir") != nullptr)
+		{
+			boost::filesystem::path texturedir_path = compiler_element->Attribute("texturedir");
+			if (texturedir_path.is_relative())
+			{
+				texturedir_abs_path /= texturedir_path;
+			}
+			else
+			{
+				texturedir_abs_path = texturedir_path;
+			}
+
+			compiler_element->DeleteAttribute("texturedir");
 		}
 	}
 
-	save_mesh_paths(current_xml_doc, meshdir_abs_path);
+	save_mesh_paths(current_xml_doc, meshdir_abs_path, texturedir_abs_path);
 
 	if (model_path.has_extension())
 	{
@@ -285,6 +299,7 @@ static void init_tmp()
 	}
 
 	meshdir_abs_path = model_path.parent_path();
+	texturedir_abs_path = model_path.parent_path();
 	for (tinyxml2::XMLElement *compiler_element = cache_model_xml_doc.FirstChildElement()->FirstChildElement("compiler");
 		 compiler_element != nullptr;
 		 compiler_element = compiler_element->NextSiblingElement("compiler"))
@@ -303,9 +318,23 @@ static void init_tmp()
 
 			compiler_element->DeleteAttribute("meshdir");
 		}
+		if (compiler_element->Attribute("texturedir") != nullptr)
+		{
+			boost::filesystem::path texturedir_path = compiler_element->Attribute("texturedir");
+			if (texturedir_path.is_relative())
+			{
+				texturedir_abs_path /= texturedir_path;
+			}
+			else
+			{
+				texturedir_abs_path = texturedir_path;
+			}
+
+			compiler_element->DeleteAttribute("texturedir");
+		}
 	}
 
-	save_mesh_paths(cache_model_xml_doc, meshdir_abs_path);
+	save_mesh_paths(cache_model_xml_doc, meshdir_abs_path, texturedir_abs_path);
 
 	for (tinyxml2::XMLElement *worldbody_element = cache_model_xml_doc.FirstChildElement()->FirstChildElement("worldbody");
 		 worldbody_element != nullptr;

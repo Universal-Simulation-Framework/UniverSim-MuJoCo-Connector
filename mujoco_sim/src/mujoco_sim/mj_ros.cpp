@@ -595,6 +595,7 @@ bool MjRos::screenshot_service(std_srvs::TriggerRequest &req, std_srvs::TriggerR
         std::function<void(tinyxml2::XMLElement *)> change_meshdir_cb = [&](tinyxml2::XMLElement *compiler_element)
         {
             compiler_element->DeleteAttribute("meshdir");
+            compiler_element->DeleteAttribute("texturedir");
             compiler_element->SetAttribute("boundmass", "0.000001");
             compiler_element->SetAttribute("boundinertia", "0.000001");
         };
@@ -836,6 +837,7 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
                 }
 
                 boost::filesystem::path mesh_dir = object_mesh_path.parent_path();
+                boost::filesystem::path texture_dir = object_mesh_path.parent_path();
                 for (tinyxml2::XMLNode *node = mesh_xml_doc.FirstChild()->FirstChild();
                      node != nullptr;
                      node = node->NextSibling())
@@ -843,10 +845,16 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
                     tinyxml2::XMLNode *copy = node->DeepClone(&object_xml_doc);
 
                     // Save path of asset
-                    if (strcmp(copy->Value(), "compiler") == 0 && copy->ToElement()->Attribute("meshdir") != nullptr)
+                    if (strcmp(copy->Value(), "compiler") == 0)
                     {
-                        mesh_dir = mesh_dir / copy->ToElement()->Attribute("meshdir");
-                        continue;
+                        if (copy->ToElement()->Attribute("meshdir") != nullptr)
+                        {
+                            mesh_dir = mesh_dir / copy->ToElement()->Attribute("meshdir");
+                        }
+                        if (copy->ToElement()->Attribute("texturedir") != nullptr)
+                        {
+                            texture_dir = texture_dir / copy->ToElement()->Attribute("texturedir");
+                        }
                     }
 
                     // Change path of asset
@@ -930,6 +938,17 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
                                                     }
                                                 } });
 
+                        do_each_child_element(copy->ToElement(), "texture", [&](tinyxml2::XMLElement *texture_element)
+                                              {
+                                                if (texture_element->Attribute("file") != nullptr && texture_element->Attribute("name") != nullptr)
+                                                {
+                                                    if (texture_element->Attribute("file")[0] != '/')
+                                                    {
+                                                        texture_element->SetAttribute("file", (texture_dir / texture_element->Attribute("file")).c_str());
+                                                    }
+                                                }
+                                              }
+                        );
                         for (tinyxml2::XMLElement *mesh_element : elements_to_remove)
                         {
                             copy->DeleteChild(mesh_element);

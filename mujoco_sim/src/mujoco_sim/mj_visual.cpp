@@ -150,6 +150,10 @@ void MjVisual::render(double sim_time, double ros_time)
         {
             mjr_uploadMesh(m, &con, i);
         }
+        for (int i= 0; i < m->ntex; i++)
+        {
+            mjr_uploadTexture(m, &con, i);
+        }
 
         MjSim::reload_mesh = false;
     }

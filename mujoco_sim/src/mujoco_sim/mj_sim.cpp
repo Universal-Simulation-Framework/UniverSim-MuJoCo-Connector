@@ -230,7 +230,7 @@ static void init_tmp()
 			boost::filesystem::copy_file(model_path, cache_model_path);
 		}
 	}
-	
+
 	// Add world to tmp_model_path
 	tmp_model_path /= tmp_model_name;
 	tinyxml2::XMLDocument current_xml_doc;
@@ -335,6 +335,27 @@ static void init_tmp()
 	}
 
 	save_mesh_paths(cache_model_xml_doc, meshdir_abs_path, texturedir_abs_path);
+
+	for (tinyxml2::XMLElement *default_element = cache_model_xml_doc.FirstChildElement()->FirstChildElement("default");
+		 default_element != nullptr;
+		 default_element = default_element->NextSiblingElement("default"))
+	{
+		std::set<tinyxml2::XMLElement *> default_classes_to_delete;
+		for (tinyxml2::XMLElement *default_class_element = default_element->FirstChildElement("default");
+			 default_class_element != nullptr;
+			 default_class_element = default_class_element->NextSiblingElement("default"))
+		{
+			if (strcmp(default_class_element->Attribute("class"), "visual") == 0 ||
+				strcmp(default_class_element->Attribute("class"), "collision") == 0)
+			{
+				default_classes_to_delete.insert(default_class_element);
+			}
+		}
+		for (tinyxml2::XMLElement *default_class_element : default_classes_to_delete)
+		{
+			default_element->DeleteChild(default_class_element);
+		}
+	}
 
 	for (tinyxml2::XMLElement *worldbody_element = cache_model_xml_doc.FirstChildElement()->FirstChildElement("worldbody");
 		 worldbody_element != nullptr;

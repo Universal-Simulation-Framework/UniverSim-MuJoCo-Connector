@@ -1,12 +1,22 @@
 <mujoco>
-  <compiler angle="radian" autolimits="true" boundmass="0.000001" boundinertia="0.000001"/>
-  
+  <compiler angle="radian" autolimits="true" boundmass="0.000001" boundinertia="0.000001" />
+
   <option timestep="0.005" integrator="RK4" gravity="0 0 -9.81">
-    <flag sensornoise="disable" energy="enable" contact="enable"/>
+    <flag sensornoise="disable" energy="enable" contact="enable" />
   </option>
 
+  <default>
+    <default class="visual">
+      <geom contype="0" conaffinity="0" />
+    </default>
+    <default class="collision">
+      <geom rgba="1.0 0.0 0.0 0.5" />
+    </default>
+  </default>
+
   <asset>
-    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3" rgb2=".2 .3 .4" />
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1=".1 .2 .3"
+      rgb2=".2 .3 .4" />
     <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" reflectance=".2" />
   </asset>
 

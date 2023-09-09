@@ -18,14 +18,14 @@
     <group if="$(arg use_urdf)">
         <node name="urdf_to_mjcf" pkg="multiverse_parser" type="urdf_to_mjcf_node" output="screen" args="$(arg robot) $(arg disable_parent_child_collision_level)" />
         <param name="robot_description" command="$(find xacro)/xacro '$(arg robot)'" />
-        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen" args="$(arg socket_port)" launch-prefix="bash -c 'sleep 0.5; $0 $@' ">
+        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen" required="true" args="$(arg socket_port)" launch-prefix="bash -c 'sleep 0.5; $0 $@' ">
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>
     </group>
 
     <group unless="$(arg use_urdf)">
-        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen" args="$(arg socket_port)">
+        <node name="mujoco_sim" pkg="mujoco_sim" type="mujoco_sim_node" output="screen" required="true" args="$(arg socket_port)">
             <param name="world" value="$(arg world)" />
             <param name="robot" type="str" value="$(arg robot)" />
         </node>

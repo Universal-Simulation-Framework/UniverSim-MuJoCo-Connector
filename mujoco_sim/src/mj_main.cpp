@@ -137,9 +137,6 @@ void simulate()
         last_sim_time.push_front(sim_time);
         if (i == num_step)
         {
-            double ros_time_diff = ros_time - last_ros_time.back();
-            double sim_time_diff = sim_time - last_sim_time.back();
-            rtf = sim_time_diff / ros_time_diff;
             last_ros_time.pop_back();
             last_sim_time.pop_back();
         }
@@ -147,6 +144,7 @@ void simulate()
         {
             i++;
         }
+        rtf = (ros_time - last_ros_time.back()) / (sim_time - last_sim_time.back());
 
         // Change timestep when out of sync
         if (error_time > 1E-3)

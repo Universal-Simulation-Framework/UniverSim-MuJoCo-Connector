@@ -778,15 +778,6 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
 
         tinyxml2::XMLElement *body_element = object_xml_doc.NewElement("body");
         body_element->SetAttribute("name", object.info.name.c_str());
-        if (object.info.movable)
-        {
-            tinyxml2::XMLElement *joint_element = object_xml_doc.NewElement("freejoint");
-            body_element->LinkEndChild(joint_element);
-        }
-        else
-        {
-            body_element->SetAttribute("mocap", "true");
-        }
 
         tinyxml2::XMLElement *geom_element = object_xml_doc.NewElement("geom");
         tinyxml2::XMLElement *inertial_element = object_xml_doc.NewElement("inertial");
@@ -834,6 +825,27 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
                 {
                     ROS_WARN("Failed to load file \"%s\"\n", object_mesh_path.c_str());
                     continue;
+                }
+
+                for (tinyxml2::XMLElement *default_element = mesh_xml_doc.FirstChildElement()->FirstChildElement("default");
+                    default_element != nullptr;
+                    default_element = default_element->NextSiblingElement("default"))
+                {
+                    std::set<tinyxml2::XMLElement *> default_classes_to_delete;
+                    for (tinyxml2::XMLElement *default_class_element = default_element->FirstChildElement("default");
+                        default_class_element != nullptr;
+                        default_class_element = default_class_element->NextSiblingElement("default"))
+                    {
+                        if (strcmp(default_class_element->Attribute("class"), "visual") == 0 ||
+                            strcmp(default_class_element->Attribute("class"), "collision") == 0)
+                        {
+                            default_classes_to_delete.insert(default_class_element);
+                        }
+                    }
+                    for (tinyxml2::XMLElement *default_class_element : default_classes_to_delete)
+                    {
+                        default_element->DeleteChild(default_class_element);
+                    }
                 }
 
                 boost::filesystem::path mesh_dir = object_mesh_path.parent_path();
@@ -976,6 +988,20 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
                         if (copy_body_element != nullptr && copy_body_element->Attribute("name") != nullptr)
                         {
                             name_map[mjtObj::mjOBJ_BODY][copy_body_element->Attribute("name")] = object.info.name;
+
+                            tinyxml2::XMLElement *freejoint_element = copy_body_element->FirstChildElement("freejoint");
+                            if (freejoint_element != nullptr)
+                            {
+                                copy_body_element->DeleteChild(freejoint_element);
+                            }
+                            if (object.info.movable)
+                            {
+                                copy_body_element->LinkEndChild(object_xml_doc.NewElement("freejoint"));
+                            }
+                            else
+                            {
+                                copy_body_element->SetAttribute("mocap", "true");
+                            }
                         }
                         else
                         {
@@ -1195,6 +1221,20 @@ void MjRos::spawn_objects(const std::vector<mujoco_msgs::ObjectStatus> objects)
 
         default:
             break;
+        }
+        
+        tinyxml2::XMLElement *freejoint_element = body_element->FirstChildElement("freejoint");
+        if (freejoint_element != nullptr)
+        {
+            body_element->DeleteChild(freejoint_element);
+        }
+        if (object.info.movable)
+        {
+            body_element->LinkEndChild(object_xml_doc.NewElement("freejoint"));
+        }
+        else
+        {
+            body_element->SetAttribute("mocap", "true");
         }
 
         body_element->SetAttribute("pos",
